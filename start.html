@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Take-Marker</title>
+<meta name="description" content="Bauzeichnung, Platine, Test-Suite und Auswertung für den Take-Marker, ein Gerät auf dem Blitzschuh der Kamera.">
+<meta property="og:image" content="vorschau.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap">
+<style>
+/* Gleiches Ingenieurblatt wie die Werkzeuge: grünes Raster, Tinte, eine Platine als Bild. */
+:root{
+  --paper:#E2EBDC; --sheet:#EDF2E7; --grid:#CBDAC4; --grid2:#B2C8AB;
+  --ink:#13302A; --ink2:#46625A; --line:#8FA79C; --fill:#F7FAF3; --mark:#FFE12E;
+  --sans:'B612','Avenir Next','Segoe UI',system-ui,sans-serif;
+  --mono:'B612 Mono','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0E1614; --sheet:#141E1B; --grid:#1A2723; --grid2:#25352F;
+  --ink:#DCEBE2; --ink2:#9FB6AB; --line:#4C655B; --fill:#1D2A26; color-scheme:dark;
+}}
+*{box-sizing:border-box}
+body{margin:0;background-color:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;
+  background-image:linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px),
+  linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:100px 100px,100px 100px,20px 20px,20px 20px}
+.w{max-width:1060px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:grid;gap:6px;margin-bottom:18px}
+h1{margin:0;font-size:clamp(30px,5vw,46px);letter-spacing:.01em;line-height:1.1}
+header p{margin:0;max-width:62ch}
+.facts{font-family:var(--mono);font-size:12px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:4px 18px}
+.hero{margin:0 0 18px;border:1.5px solid var(--ink);background:var(--sheet)}
+.hero img{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover}
+.hero figcaption{font-family:var(--mono);font-size:12px;color:var(--ink2);padding:6px 10px;border-top:1px solid var(--line)}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:680px){.tiles{grid-template-columns:minmax(0,1fr)}}
+.tile{display:grid;gap:6px;align-content:start;border:1.5px solid var(--ink);background:var(--sheet);padding:14px 16px;color:inherit;text-decoration:none}
+a.tile:hover,a.tile:focus-visible{background:var(--fill)}
+a.tile:hover h2 span{background:var(--mark);color:#13302A}
+.tile h2{margin:0;font-size:19px;display:flex;justify-content:space-between;gap:12px}
+.tile h2 i{font-style:normal;font-family:var(--mono);font-size:13px;color:var(--ink2);align-self:center}
+.tile p{margin:0}
+.tile .k{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.dl{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:12px}
+.dl a{color:var(--ink)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="w">
+  <header>
+    <h1>Take-Marker</h1>
+    <p>Ein Gerät auf dem Blitzschuh der Kamera. Knopf eins setzt eine Marke, Knopf zwei nimmt eine Sprachnotiz auf. Nach dem Dreh ordnet die Auswertung die Marken per Tonabgleich dem Kameramaterial zu.</p>
+    <div class="facts"><span>Projektunterricht 2026/27</span><span>Stand 17.11.2026</span><span>Gen 1 auf dem Steckbrett, Gen 3 als Platine entworfen</span></div>
+  </header>
+
+  <figure class="hero">
+    <a href="platine/"><img src="vorschau.png" alt="3D-Ansicht der Take-Marker-Platine aus KiCad" width="1600" height="1000"></a>
+    <figcaption>Platine Gen 3, 61 × 22 mm, aus KiCad gerendert</figcaption>
+  </figure>
+
+  <div class="tiles">
+    <a class="tile" href="aufbau/">
+      <h2><span>Aufbau</span><i>3D</i></h2>
+      <p>Bauzeichnung zum Drehen: Steckbrett mit Steckliste, 3D-Druck, Endgerät, Schaltplan.</p>
+      <span class="k">Jedes Teil und jede Leitung anklickbar</span>
+    </a>
+    <div class="tile">
+      <a href="platine/" style="color:inherit;text-decoration:none;display:grid;gap:6px">
+        <h2><span>Platine</span><i>Gen 3</i></h2>
+        <p>Wie die Platine entsteht, in sieben Schritten. Lagen, Vias, Massefläche, Stückliste.</p>
+      </a>
+      <div class="dl"><a href="platine/dateien/take-marker-gerber.zip">Gerber-ZIP</a><a href="platine/dateien/take-marker.kicad_pcb">KiCad-Datei</a><a href="platine/dateien/take-marker.kicad_pro">KiCad-Projekt</a></div>
+    </div>
+    <a class="tile" href="testsuite/">
+      <h2><span>Test-Suite</span><i>USB</i></h2>
+      <p>Gerät anstecken und live prüfen: Mikrofon, Knöpfe, LED, Karte. Aufnehmen per Knopf.</p>
+      <span class="k">Chrome oder Edge, Firmware "testmodus" auf dem Gerät</span>
+    </a>
+    <a class="tile" href="auswertung/">
+      <h2><span>Auswertung</span><i>v1</i></h2>
+      <p>Aufnahme-Ordner von der Karte hineinziehen, Marken anhören, Ton und Marken exportieren.</p>
+      <span class="k">Läuft im Browser, nichts wird hochgeladen</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>

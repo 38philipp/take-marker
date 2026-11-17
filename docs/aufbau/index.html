@@ -1,0 +1,1444 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Take-Marker Aufbau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap">
+</head><body>
+<style>
+/* Konzept: Blatt vom grünen Ingenieurblock, Stückliste rechts, der Leuchtstift markiert die Auswahl. Dunkel = CAD-Bildschirm. */
+:root{
+  --paper:#E2EBDC; --sheet:#EDF2E7; --grid:#CBDAC4; --grid2:#B2C8AB;
+  --ink:#13302A; --ink2:#46625A; --line:#8FA79C;
+  --fill:#F7FAF3; --fill2:#CFDDC9; --fill3:#39574D;
+  --mark:#FFE12E; --markink:#13302A;
+  --power:#CF2A1C; --gnd:#13302A; --i2s:#7A1FA8; --spi:#0A58CF; --io:#AD5F06;
+  --cutop:#C0321F; --cubot:#1C6AB0;
+  --sbg:#FFFFFF; --sfr:#C8372E; --sfl:#ECB9B4; --ssy:#C8372E; --swi:#2C9C86; --stx:#5F6B66;
+  --sans:'B612','Avenir Next','Segoe UI',system-ui,sans-serif;
+  --mono:'B612 Mono','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E1614; --sheet:#141E1B; --grid:#1A2723; --grid2:#25352F;
+  --ink:#DCEBE2; --ink2:#9FB6AB; --line:#4C655B;
+  --fill:#1D2A26; --fill2:#2B3D36; --fill3:#0B1311;
+  --mark:#FFE12E; --markink:#13302A;
+  --power:#FF6F5E; --gnd:#DCEBE2; --i2s:#CA93F2; --spi:#74B4FF; --io:#F4B24F;
+  --cutop:#FF7A66; --cubot:#6DB3F2;
+  --sbg:#141E1B; --sfr:#FF6F5E; --sfl:#5A3A35; --ssy:#FF6F5E; --swi:#4FD1B0; --stx:#9FB6AB;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#0E1614; --sheet:#141E1B; --grid:#1A2723; --grid2:#25352F;
+  --ink:#DCEBE2; --ink2:#9FB6AB; --line:#4C655B;
+  --fill:#1D2A26; --fill2:#2B3D36; --fill3:#0B1311;
+  --mark:#FFE12E; --markink:#13302A;
+  --power:#FF6F5E; --gnd:#DCEBE2; --i2s:#CA93F2; --spi:#74B4FF; --io:#F4B24F;
+  --cutop:#FF7A66; --cubot:#6DB3F2;
+  --sbg:#141E1B; --sfr:#FF6F5E; --sfl:#5A3A35; --ssy:#FF6F5E; --swi:#4FD1B0; --stx:#9FB6AB;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.4}
+button,input{font:inherit;color:inherit}
+button{appearance:none;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+#app{display:grid;grid-template-columns:minmax(0,1fr) 352px;grid-template-rows:auto minmax(0,1fr);height:100%}
+header{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:9px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  border-bottom:1.5px solid var(--ink);background:var(--sheet)}
+header b{font-size:16px;letter-spacing:.01em}
+.seg{display:inline-flex;border:1.5px solid var(--ink)}
+.seg button{padding:6px 12px;font-size:13px;border-left:1.5px solid var(--ink)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+#cfgSeg{margin-left:auto}
+
+#stage{position:relative;overflow:hidden;min-width:0;background-color:var(--paper);
+  background-image:linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px),
+  linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:100px 100px,100px 100px,20px 20px,20px 20px}
+#view3d{position:absolute;inset:0}
+#view3d canvas{display:block;width:100%;height:100%;touch-action:none}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;width:24px;height:24px;margin:-12px 0 0 -12px;pointer-events:auto;
+  background:var(--sheet);border:1.5px solid var(--ink);font:700 12px/1 var(--mono);display:grid;place-items:center}
+.pin.hot{background:var(--mark);color:var(--markink);border-color:var(--markink)}
+.pin.off{opacity:.3}
+.dimtxt{position:absolute;left:0;top:0;font:400 11px/1 var(--mono);color:var(--ink);background:var(--paper);padding:2px 4px;
+  transform:translate(-50%,-50%);white-space:nowrap}
+#tip{position:absolute;left:0;top:0;pointer-events:none;background:var(--ink);color:var(--sheet);font:400 12px/1.2 var(--mono);padding:4px 7px;white-space:nowrap;z-index:5}
+
+.over{position:absolute;z-index:3}
+#proj{top:12px;left:max(12px,env(safe-area-inset-left,0px));background:var(--sheet)}
+#proj button{padding:5px 10px;font-size:12px}
+#expl{top:12px;right:max(12px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:8px;background:var(--sheet);
+  border:1.5px solid var(--ink);padding:5px 10px;font-size:12px}
+#expl input{width:120px;accent-color:var(--ink)}
+#chips{bottom:12px;right:max(12px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:calc(100% - 24px)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--sheet);border:1.5px solid var(--ink);padding:4px 8px;font-size:12px}
+.chip i{width:10px;height:10px;display:block}
+.chip[aria-pressed="true"]{background:var(--mark);color:var(--markink);border-color:var(--markink)}
+#block{bottom:12px;left:max(12px,env(safe-area-inset-left,0px));border:1.5px solid var(--ink);background:var(--sheet);
+  font:400 11px/1.25 var(--mono);display:grid;grid-template-columns:auto auto}
+#block div{padding:3px 8px;border-bottom:1px solid var(--ink)}
+#block div:nth-child(odd){border-right:1px solid var(--ink);color:var(--ink2)}
+#block div:nth-last-child(-n+2){border-bottom:0}
+#block div:first-child,#block div:nth-child(2){font-weight:700;color:var(--ink)}
+
+.pane{position:absolute;inset:0;overflow:auto;padding-block:16px 72px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--paper)}
+#schWrap{overflow-x:auto}
+#sch{display:block;width:100%;min-width:680px;max-width:1040px;height:auto;margin:0 auto}
+#sch text{fill:var(--ink);font:400 13px var(--mono)}
+#sch text.t{font:700 14px var(--sans)}
+#sch text.s{fill:var(--ink2);font-size:12px}
+.blk{cursor:pointer}
+.blk rect{fill:var(--fill);stroke:var(--ink);stroke-width:1.5}
+.blk.hot rect{fill:var(--mark)}
+.blk.hot text{fill:var(--markink)!important}
+.nl{fill:none;stroke-width:2;pointer-events:none}
+.nl.hot{stroke-width:3.5}
+.hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
+.off{opacity:.16}
+#flow{list-style:none;margin:18px auto 0;padding:0;max-width:1040px;display:flex;flex-wrap:wrap;gap:8px 0;font-size:12.5px}
+#flow li{display:flex;align-items:stretch}
+#flow li div{border:1.5px solid var(--ink);background:var(--sheet);padding:5px 9px;display:grid;gap:1px}
+#flow b{font-weight:700}
+#flow span{font:400 11.5px var(--mono);color:var(--ink2)}
+#flow li+li::before{content:"→";align-self:center;padding:0 7px;font-family:var(--mono)}
+
+#planWrap{overflow-x:auto}
+#plan{display:block;width:100%;min-width:820px;max-width:1180px;height:auto;margin:0 auto;background:var(--sbg)}
+#plan text{fill:var(--stx);font:400 13px var(--sans)}
+#plan text.p{font:400 13px var(--mono)}
+#plan text.n{font:400 10.5px var(--mono)}
+#plan text.f{fill:var(--sfr);font-size:15px}
+.fr{fill:none;stroke:var(--sfr);stroke-width:1}
+.fr.l{stroke:var(--sfl)}
+.pn{cursor:pointer}
+.pn .ha{fill:none;stroke:var(--mark);stroke-width:9;stroke-linecap:round;opacity:0}
+.pn.hot .ha{opacity:1}
+.wi{fill:none;stroke:var(--swi);stroke-width:1.6}
+.wi.y{stroke:var(--ssy)}
+.jn{fill:var(--swi)}
+.pn.hot .wi{stroke:var(--markink)}
+.pn.hot .jn{fill:var(--markink)}
+.sy{cursor:pointer}
+.sy .ha{fill:transparent;stroke:none}
+.sy.hot .ha{fill:var(--mark)}
+.sy path,.sy circle,.sy .bd{fill:none;stroke:var(--ssy);stroke-width:1.5}
+.sy.hot path,.sy.hot circle,.sy.hot .bd{stroke:var(--markink)}
+.sy.hot text{fill:var(--markink)!important}
+
+#pcbWrap{max-width:800px;margin:0 auto;display:grid;gap:18px}
+.pcbneu{display:block;border:1.5px solid var(--ink);background:var(--mark);color:var(--markink);padding:9px 12px;font-weight:700;text-decoration:none}
+.pcbneu:hover{text-decoration:underline}
+#pcbWrap h3{margin:0 0 6px;font-size:13px;font-weight:700}
+#pcbWrap canvas{display:block;width:100%;cursor:pointer;background:var(--fill);border:1.5px solid var(--ink)}
+
+#panel{overflow:auto;min-width:0;border-left:1.5px solid var(--ink);background:var(--sheet);padding-block:4px 24px;
+  padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+#panel h2{margin:18px 0 2px;font:700 11.5px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.09em}
+.row{display:grid;grid-template-columns:26px minmax(0,1fr) auto 12px;gap:8px;align-items:baseline;width:100%;text-align:left;padding:8px 0;border-bottom:1px solid var(--line)}
+.row .no{font:700 12px var(--mono)}
+.row .nm{min-width:0}
+.row .pr{font:400 12px var(--mono);color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .pl{font:400 13px var(--mono)}
+.row[aria-expanded="true"]{background:var(--mark);color:var(--markink);box-shadow:-8px 0 0 var(--mark),8px 0 0 var(--mark)}
+.row[aria-expanded="true"] .pr{color:var(--markink)}
+.row .sq{width:10px;height:10px;display:block;align-self:center;justify-self:center}
+.det{padding:8px 0 10px;border-bottom:1px solid var(--line);font-size:13px}
+.det dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px}
+.det dt{color:var(--ink2);font:400 12px/1.5 var(--mono)}
+.det dd{margin:0;min-width:0}
+.sum{display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-weight:700}
+.sum span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#panel ul,#panel ol{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:7px;font-size:13px}
+#panel ol{counter-reset:s}
+#panel ol li{counter-increment:s;display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px}
+#panel ol li::before{content:counter(s);font:700 12px/1.55 var(--mono)}
+#panel ul li{padding-left:12px;border-left:3px solid var(--power)}
+
+#nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+@media (max-width:880px){
+  #app{display:block;height:auto}
+  #stage{height:66vh;min-height:420px}
+  #panel{border-left:0;border-top:1.5px solid var(--ink);overflow:visible;padding-left:max(16px,env(safe-area-inset-left,0px))}
+}
+@media (max-width:560px){
+  #block{display:none}
+  #expl input{width:84px}
+  .seg button{padding:6px 9px}
+}
+</style>
+
+<div id="app">
+  <header>
+    <b>Take-Marker</b>
+    <div class="seg" id="viewSeg" role="group" aria-label="Ansicht">
+      <button id="v3d" data-view="3d" aria-pressed="true">3D</button>
+      <button id="vsch" data-view="sch" aria-pressed="false">Architektur</button>
+      <button id="vplan" data-view="plan" aria-pressed="false">Schaltplan</button>
+      <button id="vpcb" data-view="pcb" aria-pressed="false">Platine</button>
+    </div>
+    <div class="seg" id="cfgSeg" role="group" aria-label="Aufbau">
+      <button id="cSteck" data-cfg="steck" aria-pressed="true">Steckbrett</button>
+      <button id="cDruck" data-cfg="druck" aria-pressed="false">3D-Druck</button>
+      <button id="cFinal" data-cfg="final" aria-pressed="false">Final</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <div id="view3d">
+      <div id="pins"></div>
+      <div id="tip" hidden></div>
+    </div>
+    <div class="pane" id="viewSch" hidden>
+      <div id="schWrap"><svg id="sch" viewBox="50 34 840 586" role="img" aria-label="Architektur"></svg></div>
+      <ol id="flow"></ol>
+    </div>
+    <div class="pane" id="viewPlan" hidden>
+      <div id="planWrap"><svg id="plan" viewBox="0 0 1120 792" role="img" aria-label="Schaltplan"></svg></div>
+    </div>
+    <div class="pane" id="viewPcb" hidden>
+      <div id="pcbWrap">
+        <a class="pcbneu" href="../platine/">Alter Entwurf vom 02.11. Aktueller Stand: Platine v3 aus KiCad →</a>
+        <div><h3>Oberseite, Entwurf 02.11.</h3><canvas id="pcbT" aria-label="Platine Oberseite"></canvas></div>
+        <div><h3>Unterseite, Entwurf 02.11., von oben durchgesehen</h3><canvas id="pcbB" aria-label="Platine Unterseite"></canvas></div>
+      </div>
+    </div>
+    <div class="over seg" id="proj" role="group" aria-label="Projektion">
+      <button id="pIso" data-proj="iso">Iso</button>
+      <button id="pTop" data-proj="top">Oben</button>
+      <button id="pSide" data-proj="side">Seite</button>
+    </div>
+    <label class="over" id="expl" hidden>Explosion <input id="explR" type="range" min="0" max="100" value="100"></label>
+    <div class="over" id="chips"></div>
+    <div class="over" id="block"></div>
+  </main>
+
+  <aside id="panel"></aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const C={};
+function readTheme(){
+  const s=getComputedStyle(document.documentElement);
+  ['paper','sheet','ink','ink2','line','fill','fill2','fill3','mark','markink','power','gnd','i2s','spi','io','cutop','cubot']
+    .forEach(k=>{C[k]=s.getPropertyValue('--'+k).trim()});
+}
+
+/* ---------- Inhalt ---------- */
+const GROUPS={power:'Strom',gnd:'Masse',i2s:'I2S',spi:'SPI',io:'Knöpfe + LED'};
+
+const NET_COMMON={
+  nck:{g:'i2s',a:'D5',b:'SCK Mikrofon',d:'Takt, 1.024 MHz',parts:['xiao','mic']},
+  nws:{g:'i2s',a:'D6',b:'WS Mikrofon',d:'Kanaltakt, 16 kHz',parts:['xiao','mic']},
+  nda:{g:'i2s',a:'SD Mikrofon',b:'D3',d:'Tondaten. Der Pin heisst SD (Serial Data) und hat nichts mit der SD-Karte zu tun',parts:['xiao','mic']},
+  nlr:{g:'gnd',a:'L/R',b:'GND',d:'linker Kanal',parts:['mic']},
+  ncs:{g:'spi',a:'D7',b:'CS',d:'Karte wählen',parts:['xiao','sd']},
+  nsck:{g:'spi',a:'D8',b:'SCK',d:'Takt, 10 MHz',parts:['xiao','sd']},
+  nmosi:{g:'spi',a:'D10',b:'MOSI',d:'Daten zur Karte',parts:['xiao','sd']},
+  nmiso:{g:'spi',a:'MISO',b:'D9',d:'Daten von der Karte',parts:['xiao','sd']},
+  nk1:{g:'io',a:'D0',b:'Knopf 1',d:'Marke, gedrückt = LOW',parts:['xiao','k1']},
+  nk2:{g:'io',a:'D1',b:'Knopf 2',d:'Notiz, gedrückt = LOW',parts:['xiao','k2']},
+  nled:{g:'io',a:'D4',b:'330 Ω, LED',d:'Status',parts:['xiao','led']}
+};
+const NETS={
+  steck:Object.assign({
+    n5v:{g:'power',a:'5V',b:'VCC SD',d:'5 V aus USB',parts:['xiao','sd','usb']},
+    n3v3:{g:'power',a:'3V3',b:'VDD Mikrofon',d:'3.3 V, rote Schiene oben',parts:['xiao','mic']},
+    ngnd:{g:'gnd',a:'GND',b:'blaue Schienen',d:'alle Teile, beide blauen Schienen verbunden',parts:['xiao','mic','sd','k1','k2','led']}
+  },NET_COMMON),
+  final:Object.assign({
+    nbat:{g:'power',a:'Akku +',b:'Schalter, BAT',d:'3.0 bis 4.2 V',parts:['akku','sw','xiao']},
+    n3v3:{g:'power',a:'3V3',b:'SD, Mikrofon',d:'3.3 V, bis 700 mA',parts:['xiao','mic','sd']},
+    ngnd:{g:'gnd',a:'GND',b:'Massefläche',d:'ganze Unterseite',parts:['xiao','mic','sd','k1','k2','led','akku']}
+  },NET_COMMON)
+};
+NETS.final=Object.assign({},NETS.final,{
+  nk1:{g:'io',a:'D0',b:'Knopf ○',d:'Marke, gedrückt = LOW',parts:['xiao','k1']},
+  nk2:{g:'io',a:'D1',b:'Knopf △',d:'Notiz, gedrückt = LOW',parts:['xiao','k2']}
+});
+
+NETS.druck=Object.assign({},NETS.final,{
+  n3v3:{g:'power',a:'3V3',b:'SD, Mikrofon',d:'3.3 V',parts:['xiao','mic','sd']},
+  ngnd:{g:'gnd',a:'GND',b:'alle Teile',d:'Draht auf dem Lochraster',parts:['xiao','mic','sd','k1','k2','led','akku']}
+});
+
+const PARTS={
+  steck:[
+    {id:'xiao',no:1,name:'XIAO ESP32-S3',pr:'11.90',facts:[['Aufgabe','nimmt auf, zählt Samples, schreibt auf die Karte'],['Lage','Spalte 2 bis 8, Reihen C und G, USB-C zeigt nach links'],['Prüfen','die kleine runde Antennenbuchse liegt dann unten rechts'],['Stifte','zwei 7er-Leisten lagen bei, heute nur aufgesteckt, nicht gelötet'],['Frei','D2']]},
+    {id:'mic',no:2,name:'I2S-Mikrofon',pr:'8.90',facts:[['Typ','DFRobot SEN0327 laut Etikett, rund, ca. 14 mm'],['Stifte','schon angelötet, 2 × 3'],['Pins','GND, VDD, SD und L/R, WS, SCK'],['Lage','über der Mittelrille, Spalte 11 bis 13, Reihen E und F, Schrift nach oben'],['Spannung','3.3 V, nie 5 V']]},
+    {id:'sd',no:3,name:'Micro-SD-Modul',pr:'4.90',facts:[['Lage','hochkant in Reihe B, CS in Spalte 16 bis GND in Spalte 21'],['Richtung','Kartenschlitz zeigt zur oberen Schiene. Zeigt er zu euch, ist die Reihenfolge gespiegelt (Fehler in der Zeichnung bis 16.11. abends)'],['Spannung','VCC 5 V. Auf dem Modul sitzen ein 3.3-V-Regler (1117) und ein Pegelwandler (74LVC125A), Foto 16.11.'],['MISO','kommt deshalb mit höchstens 3.3 V zurück'],['Karte','FAT32, höchstens 32 GB']]},
+    {id:'k1',no:4,name:'Knopf 1, Marke',pr:'vorhanden',facts:[['Pin','D0 mit internem Pull-up'],['Beine','über der Mittelrille, Spalte 23 und 25'],['Benutzt','F23 zu D0, E25 zu GND (diagonal)'],['Datei','schreibt Sample und M in marks.csv']]},
+    {id:'k2',no:5,name:'Knopf 2, Notiz',pr:'vorhanden',facts:[['Pin','D1 mit internem Pull-up'],['Beine','über der Mittelrille, Spalte 26 und 28'],['Benutzt','F26 zu D1, E28 zu GND (diagonal)'],['Bedienung','halten = Notiz läuft'],['Datei','schreibt N+ und N− in marks.csv']]},
+    {id:'led',no:6,name:'LED + Widerstand',pr:'vorhanden',facts:[['Widerstand','von I6 nach I10, 220 bis 1 kΩ'],['LED','langes Bein J10, kurzes Bein in die blaue Schiene unten'],['Blitz','alle 2 s = Aufnahme läuft'],['An','während Notiz, kurz nach Marke'],['Schnell','Fehler, Karte oder Mikrofon']]},
+    {id:'stift',no:7,name:'Stiftleisten 2 × 7',pr:'dabei',facts:[['Heute','lange Seite ins Steckbrett, XIAO obendrauf'],['Später','anlöten, dann wackelt nichts mehr'],['Reserve','1 × 40 aus der Tüte']]},
+    {id:'board',no:8,name:'Steckbrett 830',pr:'vorhanden',facts:[['Gezeichnet','nur linke Hälfte, Spalte 0 bis 30'],['Schiene oben','aussen rot = 3V3, innen blau = GND'],['Schiene unten','aussen blau = GND, innen rot bleibt leer'],['Mitte','Schienen bei 30 unterbrochen, darum alles links davon'],['Zahlen','nur die oben gelten, die unten sind für das umgedrehte Brett']]},
+    {id:'usb',no:9,name:'USB-C-Kabel',pr:'vorhanden',facts:[['Strom','Mac oder Powerbank'],['Muss','Datenkabel, sonst geht das Aufspielen nicht'],['Beim Stecken','abziehen']]}
+  ],
+  druck:[
+    {id:'xiao',no:1,name:'XIAO ESP32-S3',pr:'11.90',facts:[['Montage','auf Stiftleiste im Lochraster'],['USB-C','Laden und Aufspielen, zeigt nach hinten'],['BAT','Akku auf die Pads unten löten']]},
+    {id:'mic',no:2,name:'I2S-Mikrofon',pr:'8.90',facts:[['Lage','im Deckel vorne, unter dem Loch'],['Anschluss','6 Drähte zum XIAO'],['Warum','Position lässt sich mit einem neuen Deckel testen']]},
+    {id:'sd',no:3,name:'Micro-SD-Modul',pr:'4.90',facts:[['Lage','flach auf dem Lochraster'],['Grösse','50 × 23.5 × 7 mm laut Shop'],['Spannung','3V3, auf Akku gibt der 5V-Pin nichts'],['Karte','Deckel auf zum Wechseln']]},
+    {id:'k1',no:4,name:'Knopf ○, Marke',pr:'vorhanden',facts:[['Taster','6 × 6 mm'],['Kappe','Kreis, gedruckt'],['Bedientest','ohne Hinschauen, Fehlgriffe zählen']]},
+    {id:'k2',no:5,name:'Knopf △, Notiz',pr:'vorhanden',facts:[['Taster','6 × 6 mm'],['Kappe','Dreieck, gedruckt, Spitze nach vorne'],['Bedientest','ohne Hinschauen, Fehlgriffe zählen']]},
+    {id:'led',no:6,name:'LED + 330 Ω',pr:'vorhanden',facts:[['Lage','auf dem Knopfstreifen, Loch im Deckel'],['Pin','D4']]},
+    {id:'sw',no:7,name:'Schiebeschalter',pr:'ca. 1',facts:[['Aufgabe','trennt den Akku'],['Lage','Rand des Lochrasters, Schlitz in der Schale']]},
+    {id:'akku',no:8,name:'LiPo 602050',pr:'ca. 10',facts:[['Masse','50 × 20 × 6 mm'],['Kapazität','ca. 600 mAh, 3.7 V'],['Laufzeit','ca. 8 h bei geschätzt 65 mA'],['Muss','mit Schutzschaltung'],['Anschluss','auf die BAT-Pads des XIAO']]},
+    {id:'perf',no:9,name:'Lochraster, zugeschnitten',pr:'ca. 3',facts:[['Masse','ca. 83 × 34 mm'],['Trägt','XIAO, SD-Modul, Schalter'],['Drähte','auf der Unterseite gelötet, 3 mm Platz zum Akku'],['Warum','keine Platine nötig, schnell änderbar']]},
+    {id:'strip',no:10,name:'Knopfstreifen',pr:'Rest Lochraster',facts:[['Aufgabe','trägt Taster und LED, im Deckel verschraubt'],['Knopfabstand','18 mm, Startwert'],['Anschluss','4 Drähte zum XIAO']]},
+    {id:'lid',no:11,name:'Deckel',pr:'Filament',facts:[['Trägt','Knopfstreifen, Mikrofon'],['Warum','neuer Deckel = neue Knopflage, die Elektronik bleibt'],['Befestigung','4 Schrauben seitlich'],['Druck','zu Hause, auch unter der Woche']]},
+    {id:'case',no:12,name:'Unterschale',pr:'Filament',facts:[['Innen','Akku unten, Lochraster darüber'],['Hinten','Loch für USB-C'],['Seite','Schlitz für den Schalter'],['Aussen','ca. 90 × 40 × 28 mm mit Deckel'],['Wand','2 mm']]},
+    {id:'foot',no:13,name:'Blitzschuh-Fuss',pr:'vorhanden',facts:[['Befestigung','M4, austauschbar'],['Idee','Kerngehäuse plus wechselbare Halterungen']]}
+  ],
+  final:[
+    {id:'xiao',no:1,name:'XIAO ESP32-S3',pr:'gleich',facts:[['Montage','flach auf die Platine gelötet'],['USB-C','Laden und Daten, zeigt nach hinten'],['BAT','Pads auf der Unterseite, Löcher in der Platine'],['Funk','aus, spart Strom']]},
+    {id:'mic',no:2,name:'I2S-Mikrofon',pr:'gleich',facts:[['Warum','gleiches Modul wie auf dem Steckbrett, keine neue Unbekannte'],['Lage','vorne, Loch im Deckel'],['Richtung','rundum, nimmt Set und Sprachnotiz auf']]},
+    {id:'sd',no:3,name:'microSD-Sockel',pr:'ca. 2',facts:[['Lage','Unterseite, damit oben Platz für die Knöpfe bleibt'],['Öffnung','zur Seite, Schlitz im Gehäuse bleibt möglich'],['Dazu','3 × 10 kΩ auf CS, DAT1, DAT2']]},
+    {id:'k1',no:4,name:'Knopf ○, Marke',pr:'ca. 1',facts:[['Taster','6 × 6 mm'],['Kappe','Kreis, Ø 10.4 mm, gedruckt'],['Abstand','16 mm zum Dreieck'],['Prüfung','Bedientest ohne Hinschauen']]},
+    {id:'k2',no:5,name:'Knopf △, Notiz',pr:'ca. 1',facts:[['Taster','6 × 6 mm'],['Kappe','Dreieck, Spitze nach vorne'],['Abstand','16 mm zum Kreis']]},
+    {id:'led',no:6,name:'LED + R1',pr:'ca. 0.50',facts:[['Bauform','0805 unter einem Loch im Deckel'],['Pin','D4 wie auf dem Steckbrett']]},
+    {id:'sw',no:7,name:'Schiebeschalter',pr:'ca. 1',facts:[['Aufgabe','trennt den Akku'],['Lage','Seite, 8.6 × 3.7 mm'],['Ein','Aufnahme startet sofort']]},
+    {id:'akku',no:8,name:'LiPo 602050',pr:'ca. 10',facts:[['Masse','50 × 20 × 6 mm'],['Kapazität','ca. 600 mAh, 3.7 V'],['Laufzeit','ca. 8 h bei geschätzt 65 mA'],['Muss','mit Schutzschaltung'],['Anschluss','zwei Lötpads an der Platine']]},
+    {id:'pcb',no:9,name:'Platine',pr:'15 bis 25',facts:[['Masse','61 × 22 × 1 mm, 2 Lagen'],['Menge','5 Stück inkl. Versand'],['C1','100 µF Keramik statt 470 µF Elko, der wäre zu hoch'],['Unterseite','Massefläche']]},
+    {id:'lid',no:10,name:'Deckel',pr:'Filament',facts:[['Material','Druck, Alu nur wenn die Werkstatt es fräst'],['Löcher','Kreis, Dreieck, LED, Mikrofon'],['Hinten','USB-C']]},
+    {id:'case',no:11,name:'Unterschale',pr:'Filament',facts:[['Boden','2.2 mm, darin die Schraube'],['Wand','1.3 mm'],['Aussen','64 × 25 × 16.5 mm mit Deckel']]},
+    {id:'foot',no:12,name:'Blitzschuh-Fuss',pr:'vorhanden',facts:[['Norm','18.6 × 18 × 2 mm'],['Material','Metall, nicht gedruckt'],['Befestigung','M4, Senkkopf von innen']]}
+  ]
+};
+const STECK=[
+  ['part:usb','USB-Kabel ab, solange du steckst'],
+  ['part:stift','Stiftleisten mit der langen Seite in C2 bis C8 und G2 bis G8'],
+  ['part:xiao','XIAO obendrauf, USB-C zeigt nach links, Antennenbuchse unten rechts'],
+  ['part:sd','SD-Modul hochkant in B16 bis B21, Kartenschlitz zeigt nach hinten zur oberen Schiene: CS in 16, GND in 21'],
+  ['part:mic','Mikrofon über die Mittelrille, Schrift lesbar nach oben: GND VDD SD in E11 E12 E13, L/R WS SCK in F11 F12 F13'],
+  ['part:k1','Knopf 1 über die Mittelrille, Beine in Spalte 23 und 25'],
+  ['part:k2','Knopf 2 über die Mittelrille, Beine in Spalte 26 und 28'],
+  ['part:led','Widerstand von I6 nach I10'],
+  ['part:led','LED: langes Bein J10, kurzes Bein in die blaue Schiene unten (äussere Reihe am Rand)'],
+  ['net:ngnd','A3 zur blauen Schiene oben (GND)'],
+  ['net:n3v3','A4 zur roten Schiene oben, äussere Reihe (3V3)'],
+  ['net:n5v','A2 nach A20 (5 V zum SD-Modul)'],
+  ['net:ncs','A8 nach A16 (CS)'],
+  ['net:nsck','A7 nach A17 (SCK)'],
+  ['net:nmosi','A5 nach A18 (MOSI)'],
+  ['net:nmiso','A6 nach A19 (MISO)'],
+  ['net:ngnd','A21 zur blauen Schiene oben (GND SD-Modul)'],
+  ['net:ngnd','A11 zur blauen Schiene oben (GND Mikrofon)','grau'],
+  ['net:n3v3','A12 zur roten Schiene oben, äussere Reihe (VDD Mikrofon)','rot'],
+  ['net:nda','C13 nach H5 (Mikrofon SD zu D3)','gelb'],
+  ['net:nck','H13 nach H7 (Mikrofon SCK zu D5)'],
+  ['net:nws','J12 nach J8 (Mikrofon WS zu D6)'],
+  ['net:nlr','J11 zur blauen Schiene unten, äussere Reihe (L/R)'],
+  ['net:ngnd','blaue Schiene oben zu blauer Schiene unten, bei Spalte 29','türkis'],
+  ['net:nk1','J2 nach J23 (D0 zu Knopf 1)','weiss'],
+  ['net:ngnd','A25 zur blauen Schiene oben (Knopf 1)','rot'],
+  ['net:nk2','J3 nach J26 (D1 zu Knopf 2)','schwarz'],
+  ['net:ngnd','A28 zur blauen Schiene oben (Knopf 2)','rot'],
+  ['part:sd','microSD-Karte rein, dann USB-C an den Mac']
+];
+const SUM={steck:['Bestellt, laut Notiz mit Versand','34.60'],druck:['Neu dazu, mit zweitem Satz','ca. 40'],final:['PV-Budget ganzes Projekt','75 bis 115']};
+const WARN={
+  steck:[
+    'Farbe in der Steckliste = euer echtes Kabel. Ohne Farbe ist sie noch nicht bestätigt, die Zeichnung zeigt dann die Funktionsfarbe.',
+    'Mikrofon nur an 3V3 (rote Schiene oben), nie an 5 V. 5 V gibt es nur auf dem einen Kabel A2 nach A20.',
+    'Der Mikrofon-Pin SD heisst Serial Data. Er hat nichts mit der SD-Karte zu tun.',
+    'XIAO ist nur aufgesteckt, nicht gelötet. Spinnt etwas, zuerst aufs Board drücken. Die Lückenmessung über 30 Minuten zählt erst mit gelöteten Stiften.',
+    'Schienen sind bei Spalte 30 unterbrochen. Alles links davon stecken.',
+    'Zahlen nur oben ablesen. Die Zahlen unten auf dem Brett laufen rückwärts.',
+    'Knöpfe: diagonale Beine nehmen, dann stimmt es sicher.',
+    'Die Beschriftung auf den Modulen gilt vor diesem Plan.'
+  ],
+  druck:[
+    'Auf Akku hat der 5V-Pin keine Spannung. Das SD-Modul aus Gen 1 hat einen 3.3-V-Regler drauf: an 3V3 kämen rechnerisch nur rund 2.3 V bei der Karte an, eine Karte braucht mindestens 2.7 V (nicht gemessen). Für Gen 2 ein Breakout ohne Regler oder den Regler überbrücken.',
+    'Gen 1 bleibt laut PV stehen. Dann braucht Gen 2 einen zweiten Satz (XIAO, Mikrofon, SD, 25.70). Sonst Gen 1 dokumentieren und umbauen.',
+    'Akku richtig herum löten: Minus liegt näher am USB. Nur LiPo mit Schutzschaltung.',
+    'Die Länge hängt am SD-Modul mit seinen 50 mm. Ein kürzeres Breakout würde das Gehäuse direkt kürzer machen.',
+    'Knopfabstand 18 mm ist ein Startwert. Der Bedientest entscheidet.'
+  ],
+  final:[
+    'USB bremst die Dauerspur: 920 MB bei 0.5 bis 1 MB/s dauern 15 bis 30 Minuten, Ziel sind 5. Das Tempo ist noch nicht gemessen. Der Hybrid (ca. 40 MB) oder ein Kartenschlitz lösen das.',
+    'BAT-Pads liegen unter dem XIAO. Dafür braucht es zwei Löcher in der Platine und einen eigenen Footprint.',
+    'Laden geht mit 50 bis 100 mA, also 6 bis 12 Stunden.',
+    'Akku und Höhe hängen vom gemessenen Strom ab. Alle Masse sind Entwurf.'
+  ]
+};
+const STEPS=[
+  'Gen 1 läuft, Pinbelegung vom Steckbrett übernehmen',
+  'Schaltplan in KiCad',
+  'Layout 61 × 22 mm, 2 Lagen, 1 mm dick',
+  'DRC, 3D-Modell gegen Gehäuse, Ausdruck 1:1 mit echten Teilen',
+  'Gerber zu JLCPCB, 5 Stück, bis 1.12. bestellen',
+  'Löten: SD-Sockel, Taster, Mikrofon, XIAO zuletzt'
+];
+const FLOW=[['Mikrofon','I2S, 32 KB/s'],['Kern 0','zählt Samples'],['Ringpuffer','1 MB, ca. 32 s'],['Kern 1','schreibt Blöcke'],['SD-Karte','115 MB/h'],['Mac','ffmpeg, Tonabgleich'],['Whisper','Notiz wird Text'],['Resolve','Marker in der Timeline']];
+const BLOCK={
+  steck:['Take-Marker','Gen 1 Steckbrett','Brett','830 Löcher, linke Hälfte','Masse','mm, Projektion isometrisch','Stand','16.11.2026, echte Teile'],
+  druck:['Take-Marker','Gen 2 3D-Druck','Grösse','ca. 90 × 40 × 28 mm','Masse','mm, Projektion isometrisch','Stand','02.11.2026, Entwurf'],
+  final:['Take-Marker','Gen 3 + 4 Final','Grösse','64 × 25 × 16.5 mm','Masse','mm, Projektion isometrisch','Stand','02.11.2026, Entwurf']
+};
+
+/* ---------- Zustand ---------- */
+let cfg='steck',view='3d',sel=null,group=null,expl=1;
+const key=s=>s?s.type+':'+s.id:'';
+function netOn(n){
+  const i=NETS[cfg][n]; if(!i)return false;
+  if(sel)return sel.type==='net'?sel.id===n:i.parts.includes(sel.id);
+  if(group)return i.g===group;
+  return true;
+}
+function partMode(id){
+  if(sel){
+    if(sel.type==='part')return sel.id===id?'hot':'ghost';
+    return NETS[cfg][sel.id].parts.includes(id)?'soft':'ghost';
+  }
+  if(group)return Object.values(NETS[cfg]).some(n=>n.g===group&&n.parts.includes(id))?'soft':'ghost';
+  return 'normal';
+}
+function setSel(s){
+  sel=(s&&key(s)===key(sel))?null:s;
+  group=null; sync();
+  if(sel){const r=document.querySelector('.row[data-sel="'+key(sel)+'"]');if(r&&innerWidth>880)r.scrollIntoView({block:'nearest'})}
+}
+
+/* ---------- Platine: gemeinsame Daten für 3D und 2D ---------- */
+const PX=i=>3.88+2.54*i;
+const TR=[], VIAS=[];
+const tr=(n,l,p)=>TR.push({n,l,p}), via=(n,x,z)=>VIAS.push({n,x,z});
+tr('ncs','t',[[PX(6),-7.62],[PX(6),-8.8]]);via('ncs',PX(6),-8.8);tr('ncs','b',[[PX(6),-8.8],[30.75,-8.8],[30.75,-7.5]]);
+tr('nsck','t',[[PX(5),-7.62],[PX(5),-9.2]]);via('nsck',PX(5),-9.2);tr('nsck','b',[[PX(5),-9.2],[34.05,-9.2],[34.05,-7.5]]);
+tr('nmiso','t',[[PX(4),-7.62],[PX(4),-9.6]]);via('nmiso',PX(4),-9.6);tr('nmiso','b',[[PX(4),-9.6],[36.25,-9.6],[36.25,-7.5]]);
+tr('nmosi','t',[[PX(3),-7.62],[PX(3),-10],[31.85,-10],[31.85,-8.2]]);via('nmosi',31.85,-8.2);tr('nmosi','b',[[31.85,-8.2],[31.85,-7.5]]);
+tr('n3v3','t',[[PX(2),-7.62],[PX(2),-10.4],[32.95,-10.4],[32.95,-6.5],[52.3,-6.5],[52.3,-6.35]]);via('n3v3',32.95,-8.2);tr('n3v3','b',[[32.95,-8.2],[32.95,-7.5]]);
+tr('n3v3','t',[[38,-6.5],[38,-8.2]]);
+tr('nda','t',[[PX(3),7.62],[PX(3),10.1],[52.3,10.1],[52.3,6.35]]);
+tr('nck','t',[[PX(5),7.62],[PX(5),9.7],[50.5,9.7],[50.5,3.81],[52.3,3.81]]);
+tr('nws','t',[[PX(6),7.62],[PX(6),9.3],[49.5,9.3],[49.5,-1.27],[52.3,-1.27]]);
+tr('nlr','t',[[52.3,1.27],[51.2,1.27]]);via('nlr',51.2,1.27);
+tr('ngnd','t',[[52.3,-3.81],[51.2,-3.81]]);via('ngnd',51.2,-3.81);
+tr('ngnd','t',[[PX(1),-7.62],[PX(1),-9.2]]);via('ngnd',PX(1),-9.2);
+tr('ngnd','t',[[37,-1],[37,-2.4]]);via('ngnd',37,-2.4);
+tr('ngnd','t',[[40,-8.2],[41,-8.2]]);via('ngnd',41,-8.2);
+via('ngnd',32.25,-2.25);via('ngnd',48.25,-2.25);
+tr('nk1','t',[[PX(0),7.62],[PX(0),9.4]]);via('nk1',PX(0),9.4);tr('nk1','b',[[PX(0),9.4],[25.75,9.4],[25.75,2.25]]);via('nk1',25.75,2.25);
+tr('nk2','t',[[PX(1),7.62],[PX(1),9.8]]);via('nk2',PX(1),9.8);tr('nk2','b',[[PX(1),9.8],[42.5,9.8],[42.5,2.25],[41.75,2.25]]);via('nk2',41.75,2.25);
+tr('nled','t',[[PX(4),7.62],[PX(4),8.6]]);via('nled',PX(4),8.6);tr('nled','b',[[PX(4),8.6],[23.5,8.6]]);via('nled',23.5,8.6);
+tr('nled','t',[[23.5,8.6],[23.5,7],[36.2,7],[36.2,5]]);tr('nled','t',[[37.8,5],[37.8,2.5],[37,2.5],[37,1]]);
+tr('nbat','b',[[PX(3),4.5],[24,4.5]]);via('nbat',24,4.5);tr('nbat','t',[[24,4.5],[24,-4.8],[43,-4.8]]);via('nbat',43,-4.8);tr('nbat','b',[[43,-4.8],[43,-8.2]]);
+tr('nbat','b',[[45.5,-8.2],[46,-5]]);
+const PADS=[];
+['nk1','nk2',null,'nda','nled','nck','nws'].forEach((n,i)=>PADS.push({n,x:PX(i),z:7.62,l:'t',w:1.6,d:2.4}));
+[null,'ngnd','n3v3','nmosi','nmiso','nsck','ncs'].forEach((n,i)=>PADS.push({n,x:PX(i),z:-7.62,l:'t',w:1.6,d:2.4}));
+['n3v3','ngnd','nws','nlr','nck','nda'].forEach((n,i)=>PADS.push({n,x:52.3,z:-6.35+2.54*i,l:'tb',w:1.5,d:1.5,round:1}));
+[[null,29.65],['ncs',30.75],['nmosi',31.85],['n3v3',32.95],['nsck',34.05],['ngnd',35.15],['nmiso',36.25],[null,37.35]]
+  .forEach(([n,x])=>PADS.push({n,x,z:-7.5,l:'b',w:.7,d:1.5}));
+[[25.75,2.25,'nk1'],[32.25,-2.25,'ngnd'],[25.75,-2.25,null],[32.25,2.25,null],[41.75,2.25,'nk2'],[48.25,-2.25,'ngnd'],[41.75,-2.25,null],[48.25,2.25,null]]
+  .forEach(([x,z,n])=>PADS.push({n,x,z,l:'tb',w:1.4,d:1.4,round:1}));
+[[43,'nbat'],[45.5,'nbat'],[48,null]].forEach(([x,n])=>PADS.push({n,x,z:-8.2,l:'tb',w:1.4,d:1.4,round:1}));
+PADS.push({n:'nled',x:36.2,z:5,l:'t',w:.8,d:1},{n:'nled',x:37.8,z:5,l:'t',w:.8,d:1});
+PADS.push({n:'nled',x:37,z:1,l:'t',w:1.2,d:1},{n:'ngnd',x:37,z:-1,l:'t',w:1.2,d:1});
+PADS.push({n:'n3v3',x:38,z:-8.2,l:'t',w:1.2,d:2},{n:'ngnd',x:40,z:-8.2,l:'t',w:1.2,d:2});
+PADS.push({n:'nbat',x:PX(3),z:4.5,l:'tb',w:2,d:1.4,round:1},{n:'ngnd',x:PX(2),z:4.5,l:'tb',w:2,d:1.4,round:1});
+PADS.push({n:'nbat',x:46,z:-5,l:'b',w:2.4,d:1.8},{n:'ngnd',x:50,z:-5,l:'b',w:2.4,d:1.8});
+const COMPS=[
+  {id:'xiao',l:'t',x:1,z:-8.9,w:21,d:17.8,ref:'U1 XIAO'},
+  {id:'mic',l:'t',x:51.2,z:-7.6,w:9.2,d:15.2,ref:'U2',tx:57},
+  {id:'k1',l:'t',x:25.75,z:-3.25,w:6.5,d:6.5,ref:'SW1 ○'},
+  {id:'k2',l:'t',x:41.75,z:-3.25,w:6.5,d:6.5,ref:'SW2 △'},
+  {id:'led',l:'t',x:35.6,z:-1.8,w:2.8,d:3.6,ref:'D1'},
+  {id:'led',l:'t',x:35.5,z:3.9,w:3,d:2.2,ref:'R1'},
+  {id:'pcb',l:'t',x:37,z:-9.6,w:4,d:2.8,ref:'C1'},
+  {id:'sw',l:'t',x:41.7,z:-11,w:8.6,d:3.7,ref:'SW3'},
+  {id:'sd',l:'b',x:26.5,z:-7.5,w:14,d:15,ref:'J1 microSD'},
+  {id:'akku',l:'b',x:44.5,z:-6.4,w:7.4,d:2.8,ref:''}
+];
+
+function paintPcb(c,l,s,ox,oy,st){
+  const mx=x=>ox+x*s, mz=z=>st.flip?oy+(11-z)*s:oy+(z+11)*s;
+  c.lineCap='round'; c.lineJoin='round';
+  c.fillStyle=st.bg; c.fillRect(ox,oy,61*s,22*s);
+  if(l==='b'){
+    c.save(); c.beginPath(); c.rect(ox,oy,61*s,22*s); c.clip();
+    const on=netOn('ngnd');
+    c.strokeStyle=on&&sel?C.mark:st.cuB; c.globalAlpha=on?(sel?.8:.28):.08; c.lineWidth=Math.max(.8,.12*s);
+    for(let i=-22;i<62;i+=1.3){c.beginPath();c.moveTo(mx(i),mz(-11));c.lineTo(mx(i+22),mz(11));c.stroke()}
+    c.restore();
+  }
+  const cu=l==='t'?st.cuT:st.cuB;
+  TR.filter(t=>t.l===l).forEach(t=>{
+    const on=netOn(t.n),hot=on&&(sel||group);
+    c.beginPath(); t.p.forEach(([x,z],i)=>i?c.lineTo(mx(x),mz(z)):c.moveTo(mx(x),mz(z)));
+    if(hot){c.strokeStyle=st.ink;c.globalAlpha=1;c.lineWidth=.6*s;c.stroke();c.strokeStyle=C.mark;c.lineWidth=.38*s}
+    else{c.strokeStyle=cu;c.globalAlpha=on?1:.22;c.lineWidth=.25*s}
+    c.stroke(); c.globalAlpha=1;
+  });
+  PADS.filter(p=>p.l.includes(l)).forEach(p=>{
+    const on=p.n?netOn(p.n):!(sel||group),hot=p.n&&on&&(sel||group);
+    c.fillStyle=hot?C.mark:cu; c.globalAlpha=on?1:.22;
+    if(p.round){c.beginPath();c.arc(mx(p.x),mz(p.z),p.w/2*s,0,7);c.fill()}
+    else c.fillRect(mx(p.x-p.w/2),mz(st.flip?p.z+p.d/2:p.z-p.d/2),p.w*s,p.d*s);
+    c.globalAlpha=1;
+  });
+  VIAS.forEach(v=>{
+    const on=netOn(v.n);
+    c.globalAlpha=on?1:.22; c.fillStyle=cu; c.beginPath(); c.arc(mx(v.x),mz(v.z),.36*s,0,7); c.fill();
+    c.fillStyle=st.bg; c.beginPath(); c.arc(mx(v.x),mz(v.z),.16*s,0,7); c.fill(); c.globalAlpha=1;
+  });
+  COMPS.filter(k=>k.l===l).forEach(k=>{
+    const m=partMode(k.id),hot=m==='hot';
+    c.globalAlpha=m==='ghost'?.25:1;
+    const y=st.flip?mz(k.z+k.d):mz(k.z);
+    if(hot){c.fillStyle=C.mark;c.globalAlpha=.75;c.fillRect(mx(k.x),y,k.w*s,k.d*s);c.globalAlpha=1}
+    c.strokeStyle=st.silk; c.lineWidth=Math.max(1,.13*s); c.strokeRect(mx(k.x),y,k.w*s,k.d*s);
+    c.fillStyle=hot?C.markink:st.silk; c.font='400 '+Math.max(10,1.15*s)+'px "B612 Mono",monospace';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(k.ref,mx(k.tx||k.x+k.w/2),y+k.d*s/2);
+    c.globalAlpha=1;
+  });
+}
+function hitPcb(l,x,z){
+  let best=null,bd=.7;
+  TR.filter(t=>t.l===l).forEach(t=>{
+    for(let i=1;i<t.p.length;i++){
+      const [ax,az]=t.p[i-1],[bx,bz]=t.p[i],dx=bx-ax,dz=bz-az,q=dx*dx+dz*dz||1;
+      const u=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/q));
+      const d=Math.hypot(x-(ax+u*dx),z-(az+u*dz));
+      if(d<bd){bd=d;best=t.n}
+    }
+  });
+  return best;
+}
+
+/* ---------- 3D ---------- */
+let renderer,scene,camera,controls,ray,has3d=false,dirty=true,tween=null,boardCv,boardTex,perfCv,perfTex,pcbCv={},pcbTex={};
+const world={};
+const P=2.54;
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const box=(a,b,c)=>new THREE.BoxGeometry(a,b,c);
+const cyl=(r,h,n)=>new THREE.CylinderGeometry(r,r,h,n||20);
+function invalidate(){dirty=true}
+function newWorld(){return{root:new THREE.Group(),parts:{},wires:[],stretch:[],pick:[],dims:[]}}
+function part(w,id,ex){
+  const g=new THREE.Group(); w.root.add(g);
+  w.parts[id]={id,group:g,meshes:[],lines:[],ex:ex||[0,0,0],tagAt:null,leader:null};
+  return g;
+}
+function add(w,id,geo,tone,pos,rot,parent){
+  const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:C[tone],transparent:true,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}));
+  m.userData={sel:{type:'part',id},tone};
+  if(pos)m.position.set(pos[0],pos[1],pos[2]);
+  if(rot)m.rotation.set(rot[0],rot[1],rot[2]);
+  const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,32),new THREE.LineBasicMaterial({color:C.ink,transparent:true}));
+  m.add(e);
+  (parent||w.parts[id].group).add(m);
+  w.parts[id].meshes.push(m); w.pick.push(m);
+  return m;
+}
+function flat(w,id,tex,a,b,y,pos,rx,extra){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(a,b),new THREE.MeshBasicMaterial({map:tex,transparent:true}));
+  m.rotation.x=rx; m.position.set(pos[0],y,pos[1]);
+  m.userData=Object.assign({sel:{type:'part',id},tone:null},extra||{});
+  w.parts[id].group.add(m); w.parts[id].meshes.push(m); w.pick.push(m);
+  return m;
+}
+function tag(w,id,from,to){
+  const p=w.parts[id];
+  const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(...from),V(...to)]),new THREE.LineBasicMaterial({color:C.ink2,transparent:true}));
+  l.userData.leader=true; p.group.add(l); p.leader=l; p.tagAt=V(...to);
+}
+function dim(w,a,b,text,off){
+  const pts=[V(...a),V(...b)];
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  const l=new THREE.Line(g,new THREE.LineBasicMaterial({color:C.ink,transparent:true})); w.root.add(l);
+  const dir=V(...b).sub(V(...a)).normalize(), n=V(...off);
+  [a,b].forEach(q=>{
+    const t=new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(...q).sub(n),V(...q).add(n)]),new THREE.LineBasicMaterial({color:C.ink,transparent:true}));
+    w.root.add(t); l.userData.t=(l.userData.t||[]).concat(t);
+  });
+  const el=document.createElement('div'); el.className='dimtxt'; el.textContent=text; $('pins').appendChild(el);
+  w.dims.push({line:l,el,at:V(...a).lerp(V(...b),.5),dir});
+}
+
+function xiaoModel(w,id,g){
+  add(w,id,box(21,1,17.8),'fill3',[0,.5,0],null,g);
+  add(w,id,box(11.6,1.5,11.2),'fill2',[2.6,1.75,0],null,g);
+  add(w,id,box(7.4,2.5,9),'fill',[-7.9,2.25,0],null,g);
+  add(w,id,box(1.2,.7,2.2),'fill2',[-2.6,1.35,-6.2],null,g);
+  add(w,id,box(1.2,.7,2.2),'fill2',[-2.6,1.35,6.2],null,g);
+  add(w,id,box(3,.4,1.6),'fill2',[9.2,1.2,4],null,g);
+}
+function tact(w,id,x,z,y0,legs){
+  add(w,id,box(6,3.4,6),'fill2',[x,y0+1.7,z]);
+  add(w,id,cyl(1.75,1.5),'fill',[x,y0+4.1,z]);
+  if(legs)[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>add(w,id,box(.5,y0+1,.7),'fill3',[x+a*P,y0/2,z+b*3.81]));
+}
+function wire(w,net,a,b,h,bow,real){
+  const A=V(a[0],0,a[1]),B=V(b[0],0,b[1]),M=A.clone().lerp(B,.5); M.y=h; M.z+=bow||0;
+  const c=new THREE.CatmullRomCurve3([A,A.clone().setY(h*.62),M,B.clone().setY(h*.62),B],false,'catmullrom',.45);
+  const mat=new THREE.MeshBasicMaterial({color:real||C[NETS.steck[net].g],transparent:true});
+  const m=new THREE.Mesh(new THREE.TubeGeometry(c,44,.36,6,false),mat);
+  const hit=new THREE.Mesh(new THREE.TubeGeometry(c,22,1.3,5,false),new THREE.MeshBasicMaterial());
+  hit.visible=false; hit.userData={sel:{type:'net',id:net},proxy:true};
+  w.root.add(m); w.root.add(hit); w.pick.push(hit);
+  w.wires.push({net,mesh:m,real});
+}
+
+function paintBoard(){
+  const c=boardCv.getContext('2d'),s=20,W=88*s,Hh=55*s,ox=44,oz=27.5;
+  c.clearRect(0,0,W,Hh); c.fillStyle=C.fill; c.fillRect(0,0,W,Hh);
+  c.fillStyle=C.fill2; c.fillRect(0,(oz-1.5)*s,W,3*s);
+  const hole=(x,z)=>c.fillRect((x+ox)*s-7,(z+oz)*s-7,14,14);
+  c.fillStyle=C.ink2;
+  for(let k=0;k<=30;k++){
+    const x=(k-15)*P;
+    for(const r of [0,1,2,3,4,7,8,9,10,11])hole(x,(r-5.5)*P);
+    if(k<30)for(const z of [-22.86,-20.32,20.32,22.86])hole(x,z);
+  }
+  c.lineWidth=3;
+  [[-24.6,C.power],[-18.6,C.gnd],[18.6,C.power],[24.6,C.gnd]].forEach(([z,col])=>{
+    c.strokeStyle=col;c.beginPath();c.moveTo(16,(z+oz)*s);c.lineTo((14.6*P+ox)*s,(z+oz)*s);c.stroke();
+  });
+  c.fillStyle=C.ink2; c.font='400 30px "B612 Mono",monospace'; c.textAlign='center'; c.textBaseline='middle';
+  [0,5,10,15,20,25,30].forEach(k=>c.fillText(k,((k-15)*P+ox)*s,(-16.6+oz)*s));
+  'ABCDEFGHIJ'.split('').forEach((r,i)=>{const ri=i<5?i:i+2;c.fillText(r,(-41.6+ox)*s,((ri-5.5)*P+oz)*s)});
+  c.font='700 34px "B612 Mono",monospace';
+  [[-22.86,'+'],[-20.32,'−'],[20.32,'+'],[22.86,'−']].forEach(([z,t])=>c.fillText(t,(-41.6+ox)*s,(z+oz)*s));
+  if(boardTex)boardTex.needsUpdate=true;
+}
+function paintPcbTex(){
+  [['t',false],['b',true]].forEach(([l,flip])=>{
+    const c=pcbCv[l].getContext('2d');
+    paintPcb(c,l,36,0,0,{bg:C.fill3,cuT:'#8DB4A3',cuB:'#8DB4A3',silk:'#DCEBE2',ink:'#13302A',flip});
+    pcbTex[l].needsUpdate=true;
+  });
+}
+
+function buildSteck(){
+  const w=world.steck=newWorld();
+  const H=(k,r)=>{const i='ABCDEFGHIJ'.indexOf(r),ri=i<5?i:i+2;return[(k-15)*P,(ri-5.5)*P]};
+  const RL={'T+':-22.86,'T-':-20.32,'B+':20.32,'B-':22.86};
+  const R=(k,n)=>[(k-15)*P,RL[n]];
+
+  part(w,'board');
+  add(w,'board',box(88,8.5,55),'fill2',[0,-4.26,0]);
+  boardCv=document.createElement('canvas'); boardCv.width=1760; boardCv.height=1100; paintBoard();
+  boardTex=new THREE.CanvasTexture(boardCv); boardTex.anisotropy=8;
+  flat(w,'board',boardTex,88,55,.02,[0,0],-Math.PI/2);
+  tag(w,'board',[43,0,26],[52,0,33]);
+
+  part(w,'stift');
+  const xc=(5-15)*P,zc=-1.27;
+  [-8.89,6.35].forEach(z=>{
+    add(w,'stift',box(17.78,2.5,2.5),'fill3',[xc,1.25,z]);
+    for(let i=0;i<7;i++)add(w,'stift',box(.64,4.2,.64),'fill',[(2+i-15)*P,4.6,z]);
+  });
+  tag(w,'stift',[(2-15)*P,2,6.35],[(0-15)*P,9,11]);
+
+  part(w,'xiao');
+  const gx=new THREE.Group(); gx.position.set(xc,4.3,zc); w.parts.xiao.group.add(gx);
+  xiaoModel(w,'xiao',gx);
+  tag(w,'xiao',[xc+2,8,zc],[xc+2,22,zc-4]);
+
+  part(w,'mic');
+  const mx=(12-15)*P;
+  [-3.81,3.81].forEach(z=>{
+    add(w,'mic',box(7.62,2.5,2.5),'fill',[mx,1.25,z]);
+    for(let i=0;i<3;i++)add(w,'mic',box(.64,4.4,.64),'fill3',[(11+i-15)*P,2.2,z]);
+  });
+  add(w,'mic',box(3.5,1,2.6),'fill2',[mx,2.2,0]);
+  add(w,'mic',cyl(7.2,1,36),'fill3',[mx,3.2,0]);
+  add(w,'mic',cyl(1,.3,16),'fill',[mx,3.8,0]);
+  tag(w,'mic',[mx,4,-5],[mx-3,17,-9]);
+
+  part(w,'sd');
+  const sx=(18.5-15)*P,sz=H(17,'B')[1];
+  add(w,'sd',box(24,42,1.2),'fill3',[sx,23.5,sz]);
+  add(w,'sd',box(14.5,15,2),'fill',[sx,33,sz-1.6]);
+  add(w,'sd',box(11,6,.8),'fill2',[sx,42.5,sz-1.6]);
+  add(w,'sd',box(6.5,3.5,1.6),'fill2',[sx+5,14,sz-1.4]);
+  add(w,'sd',box(5,4,1.2),'fill2',[sx-6,14,sz-1.2]);
+  for(let i=0;i<6;i++)add(w,'sd',box(.64,3,.64),'fill',[(16+i-15)*P,1.5,sz]);
+  tag(w,'sd',[sx+8,46,sz],[sx+8,53,sz]);
+
+  part(w,'k1');
+  const k1x=(24-15)*P,k2x=(27-15)*P;
+  tact(w,'k1',k1x,0,1.6,true);
+  tag(w,'k1',[k1x,7.5,0],[k1x-2,15,-3]);
+  part(w,'k2');
+  tact(w,'k2',k2x,0,1.6,true);
+  tag(w,'k2',[k2x,7.5,0],[k2x+2,15,-3]);
+
+  part(w,'led');
+  const lx=(10-15)*P,zj=H(10,'J')[1],zr=RL['B-'],zm=(zj+zr)/2;
+  [zj,zr].forEach(z=>add(w,'led',box(.5,4.2,.5),'fill3',[lx,2.1,z]));
+  add(w,'led',box(.5,.5,zr-zj),'fill3',[lx,4.2,zm]);
+  add(w,'led',cyl(2.5,4.4),'fill',[lx,6.6,zm]);
+  add(w,'led',new THREE.SphereGeometry(2.5,16,8,0,6.3,0,1.6),'fill',[lx,8.8,zm]);
+  const ra=(6-15)*P,rb=(10-15)*P,rz=H(6,'I')[1];
+  add(w,'led',box(rb-ra,.5,.5),'fill3',[(ra+rb)/2,3,rz]);
+  add(w,'led',cyl(1.2,6.4,12),'fill2',[(ra+rb)/2,3,rz],[0,0,Math.PI/2]);
+  [ra,rb].forEach(x=>add(w,'led',box(.5,3,.5),'fill3',[x,1.5,rz]));
+  tag(w,'led',[lx,11.5,zm],[lx+6,18,zm+4]);
+
+  part(w,'usb');
+  const uy=4.3+2.4,ux=xc-11.7;
+  add(w,'usb',box(13,4.2,8.6),'fill2',[ux-6.5,uy,zc]);
+  const cab=new THREE.CatmullRomCurve3([V(ux-13,uy,zc),V(ux-22,uy,zc),V(ux-30,uy-2,zc+6),V(ux-34,uy-8,zc+16)]);
+  add(w,'usb',new THREE.TubeGeometry(cab,24,1.5,8,false),'fill3');
+  tag(w,'usb',[ux-8,uy+2.2,zc],[ux-12,uy+12,zc]);
+
+  [['ngnd',H(3,'A'),R(3,'T-'),5],['n3v3',H(4,'A'),R(4,'T+'),4],
+   ['n5v',H(2,'A'),H(20,'A'),16,-2.6],
+   ['ncs',H(8,'A'),H(16,'A'),6,-1.2],['nsck',H(7,'A'),H(17,'A'),8,-1.8],
+   ['nmosi',H(5,'A'),H(18,'A'),12,-3],['nmiso',H(6,'A'),H(19,'A'),10,-2.4],
+   ['ngnd',H(21,'A'),R(21,'T-'),4],
+   ['ngnd',H(11,'A'),R(11,'T-'),5,0,'#8C9196'],['n3v3',H(12,'A'),R(12,'T+'),4,0,'#D42A2A'],
+   ['nda',H(13,'C'),H(5,'H'),13,0,'#E8B400'],
+   ['nck',H(13,'H'),H(7,'H'),7,1],['nws',H(12,'J'),H(8,'J'),5,1.4],
+   ['nlr',H(11,'J'),R(11,'B-'),4],
+   ['ngnd',R(29,'T-'),R(29,'B-'),12,0,'#14A39F'],
+   ['nk1',H(2,'J'),H(23,'J'),9,2.4,'#D9D9D6'],['ngnd',H(25,'A'),R(25,'T-'),4,0,'#D42A2A'],
+   ['nk2',H(3,'J'),H(26,'J'),11,3.2,'#1C1C1C'],['ngnd',H(28,'A'),R(28,'T-'),4,0,'#D42A2A']
+  ].forEach(a=>wire(w,a[0],a[1],a[2],a[3],a[4],a[5]));
+
+  dim(w,[46,-8.5,-27.5],[46,-8.5,27.5],'55',[3,0,0]);
+  scene.add(w.root);
+}
+
+function rr(s,x0,y0,x1,y1,r){
+  s.moveTo(x0+r,y0); s.lineTo(x1-r,y0); s.quadraticCurveTo(x1,y0,x1,y0+r);
+  s.lineTo(x1,y1-r); s.quadraticCurveTo(x1,y1,x1-r,y1);
+  s.lineTo(x0+r,y1); s.quadraticCurveTo(x0,y1,x0,y1-r);
+  s.lineTo(x0,y0+r); s.quadraticCurveTo(x0,y0,x0+r,y0);
+  return s;
+}
+const ext=(sh,d)=>{const g=new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:false,curveSegments:10});g.rotateX(-Math.PI/2);return g};
+function circleP(x,y,r){const p=new THREE.Path();p.absarc(x,y,r,0,Math.PI*2,false);return p}
+function triP(cx,cy,r,Cls){const p=new Cls();p.moveTo(cx+r,cy);p.lineTo(cx-r/2,cy+r*.866);p.lineTo(cx-r/2,cy-r*.866);p.closePath();return p}
+
+function lighter(w,x,z){
+  const ref=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(80,14,25)),new THREE.LineDashedMaterial({color:C.ink2,dashSize:2.4,gapSize:1.6,transparent:true}));
+  ref.computeLineDistances(); ref.position.set(x,7,z); w.root.add(ref);
+  const el=document.createElement('div'); el.className='dimtxt'; el.textContent='Feuerzeug ca. 80 × 25 × 14'; el.hidden=true; $('pins').appendChild(el);
+  w.dims.push({line:ref,el,at:V(x,14,z),dir:V(1,0,0),isRef:true});
+}
+function paintPerf(){
+  const c=perfCv.getContext('2d'),s=14;
+  c.fillStyle=C.fill2; c.fillRect(0,0,83*s,34*s); c.fillStyle=C.ink2;
+  for(let i=0;i<32;i++)for(let j=0;j<13;j++){c.beginPath();c.arc((2.2+i*2.54)*s,(1.8+j*2.54)*s,.42*s,0,7);c.fill()}
+  if(perfTex)perfTex.needsUpdate=true;
+}
+function lowWire(w,id,net,a,b,y0,h){
+  const A=V(a[0],y0,a[1]),B=V(b[0],y0,b[1]),M=A.clone().lerp(B,.5); M.y=y0+h;
+  const c=new THREE.CatmullRomCurve3([A,A.clone().setY(y0+h*.7),M,B.clone().setY(y0+h*.7),B],false,'catmullrom',.45);
+  const m=new THREE.Mesh(new THREE.TubeGeometry(c,24,.32,6,false),new THREE.MeshBasicMaterial({color:C[NETS.druck[net].g],transparent:true}));
+  const hit=new THREE.Mesh(new THREE.TubeGeometry(c,12,1.1,5,false),new THREE.MeshBasicMaterial());
+  hit.visible=false; hit.userData={sel:{type:'net',id:net},proxy:true};
+  w.parts[id].group.add(m); w.parts[id].group.add(hit); w.pick.push(hit);
+  w.wires.push({net,mesh:m});
+}
+function flyWire(w,net,pa,a,pb,b){
+  const unit=new THREE.CylinderGeometry(.32,.32,1,6),unitHit=new THREE.CylinderGeometry(1.1,1.1,1,5);
+  const m=new THREE.Mesh(unit,new THREE.MeshBasicMaterial({color:C[NETS.druck[net].g],transparent:true}));
+  const hit=new THREE.Mesh(unitHit,new THREE.MeshBasicMaterial());
+  hit.visible=false; hit.userData={sel:{type:'net',id:net},proxy:true};
+  w.root.add(m); w.root.add(hit); w.pick.push(hit);
+  w.wires.push({net,mesh:m});
+  w.stretch.push({m,hit,pa,a:V(...a),pb,b:V(...b)});
+}
+function updateStretch(w){
+  const up=V(0,1,0);
+  w.stretch.forEach(q=>{
+    const A=q.a.clone().add(w.parts[q.pa].group.position),B=q.b.clone().add(w.parts[q.pb].group.position);
+    const d=B.clone().sub(A),len=Math.max(d.length(),.01),mid=A.clone().add(B).multiplyScalar(.5);
+    [q.m,q.hit].forEach(o=>{o.position.copy(mid);o.quaternion.setFromUnitVectors(up,d.clone().normalize());o.scale.set(1,len,1)});
+  });
+}
+
+function buildDruck(){
+  const w=world.druck=newWorld();
+  const O=[-2.5,-20,87.5,20],I=[-.5,-18,85.5,18],Y=12.62;
+
+  part(w,'foot',[0,-60,0]);
+  add(w,'foot',box(18.6,2,18),'fill2',[42.5,-3.5,0]);
+  add(w,'foot',box(13,2.5,13),'fill',[42.5,-1.25,0]);
+  add(w,'foot',cyl(2,3,14),'fill3',[42.5,1,0]);
+  tag(w,'foot',[36,-3.5,9],[28,-6,34]);
+
+  part(w,'case',[0,-28,0]);
+  const ring=rr(new THREE.Shape(),...O,6);ring.holes.push(rr(new THREE.Path(),...I,4));
+  add(w,'case',ext(ring,20),'fill',[0,0,0]);
+  add(w,'case',ext(rr(new THREE.Shape(),...I,4),2),'fill',[0,0,0]);
+  add(w,'case',box(2.1,4.4,10.5),'fill3',[-1.5,17.3,0]);
+  add(w,'case',box(8,3.2,2.1),'fill3',[42.5,14.4,-19]);
+  tag(w,'case',[10,6,20],[2,6,33]);
+
+  part(w,'akku',[0,-13,0]);
+  add(w,'akku',box(50,6,20),'fill2',[43,5,0]);
+  add(w,'akku',box(3,4.6,9),'fill',[69.5,5,0]);
+  tag(w,'akku',[68,6,-6],[80,6,-22]);
+
+  part(w,'perf',[0,7,0]);
+  add(w,'perf',box(83,1.6,34),'fill2',[43.5,11.8,0]);
+  perfCv=document.createElement('canvas'); perfCv.width=1162; perfCv.height=476; paintPerf();
+  perfTex=new THREE.CanvasTexture(perfCv); perfTex.anisotropy=8;
+  flat(w,'perf',perfTex,83,34,Y,[43.5,0],-Math.PI/2);
+  tag(w,'perf',[85,11.8,-10],[97,11.8,-18]);
+
+  part(w,'xiao',[0,7,0]);
+  [-7.62,7.62].forEach(z=>add(w,'xiao',box(17.78,2.5,2.5),'fill3',[11.5,13.85,z]));
+  const gx=new THREE.Group(); gx.position.set(11.5,15.1,0); w.parts.xiao.group.add(gx);
+  xiaoModel(w,'xiao',gx);
+  tag(w,'xiao',[1,17,0],[-11,20,0]);
+
+  part(w,'sd',[0,7,0]);
+  add(w,'sd',box(42,1.2,24),'fill3',[51,15,1]);
+  add(w,'sd',box(14.5,2,15),'fill',[63,16.6,1]);
+  add(w,'sd',box(6.5,1.6,3.5),'fill2',[37,16.4,6]);
+  add(w,'sd',box(5,1.2,4),'fill2',[37,16.2,-5]);
+  for(let i=0;i<6;i++){
+    const z=1-6.35+2.54*i;
+    add(w,'sd',box(7,.64,.64),'fill',[26.5,15,z]);
+    add(w,'sd',box(.64,2.4,.64),'fill',[23.2,13.8,z]);
+  }
+  tag(w,'sd',[72,15,8],[84,15,16]);
+
+  part(w,'sw',[0,7,0]);
+  add(w,'sw',box(8.6,3.5,3.7),'fill',[42.5,14.35,-15.2]);
+  add(w,'sw',box(1.8,1.5,3.6),'fill2',[42.5,14.4,-18.6]);
+  tag(w,'sw',[47,16,-16],[54,20,-29]);
+
+  part(w,'strip',[0,36,0]);
+  add(w,'strip',box(34,1.6,12),'fill2',[47,21.8,0]);
+  tag(w,'strip',[64,21.8,3],[75,21.8,14]);
+
+  part(w,'led',[0,36,0]);
+  add(w,'led',cyl(1.5,3,14),'fill',[47,24.1,0]);
+  add(w,'led',box(3.2,.8,1.4),'fill3',[47,23,3.8]);
+  tag(w,'led',[47,25.6,0],[47,32,-7]);
+
+  part(w,'k1',[0,90,0]);
+  tact(w,'k1',38,0,22.6,false);
+  add(w,'k1',cyl(5.6,3.4,28),'fill',[38,27.7,0]);
+  tag(w,'k1',[38,29.4,0],[38,36,-3]);
+  part(w,'k2',[0,90,0]);
+  tact(w,'k2',56,0,22.6,false);
+  add(w,'k2',ext(triP(56,0,6.6,THREE.Shape),3.4),'fill',[0,26,0]);
+  tag(w,'k2',[56,29.4,0],[56,36,-3]);
+
+  part(w,'mic',[0,60,0]);
+  add(w,'mic',box(9.1,1,15.2),'fill3',[78,25.7,0]);
+  add(w,'mic',box(3,.9,4),'fill2',[78,24.8,0]);
+  tag(w,'mic',[82.5,25.7,0],[94,27,0]);
+
+  part(w,'lid',[0,70,0]);
+  const sk=rr(new THREE.Shape(),...O,6);sk.holes.push(rr(new THREE.Path(),...I,4));
+  add(w,'lid',ext(sk,8.2),'fill',[0,20,0]);
+  const topS=rr(new THREE.Shape(),...I,4);
+  topS.holes.push(circleP(38,0,6.1),triP(56,0,7.6,THREE.Path),circleP(47,0,1.6),circleP(78,0,1.1));
+  add(w,'lid',ext(topS,2),'fill',[0,26.2,0]);
+  [[14,20],[72,20],[14,-20],[72,-20]].forEach(([x,z])=>add(w,'lid',cyl(1.6,.6,12),'fill3',[x,23,z],[Math.PI/2,0,0]));
+  tag(w,'lid',[87.5,24,8],[99,26,14]);
+
+  lowWire(w,'perf','ncs',[19.12,-9.6],[23.2,-5.35],Y,1.8);
+  lowWire(w,'perf','nsck',[16.58,-9.6],[23.2,-2.81],Y,1.8);
+  lowWire(w,'perf','nmosi',[11.5,-9.6],[23.2,-.27],Y,1.8);
+  lowWire(w,'perf','nmiso',[14.04,-9.6],[23.2,2.27],Y,1.8);
+  lowWire(w,'perf','n3v3',[8.96,-9.6],[23.2,4.81],Y,1.8);
+  lowWire(w,'perf','ngnd',[6.42,-9.6],[23.2,7.35],Y,1.8);
+  lowWire(w,'perf','nbat',[38.2,-15.2],[11.5,4.5],Y,1.6);
+  flyWire(w,'nk1','perf',[3.88,Y,9.6],'strip',[32,21,3]);
+  flyWire(w,'nk2','perf',[6.42,Y,9.6],'strip',[62,21,3]);
+  flyWire(w,'nled','perf',[14.04,Y,9.6],'strip',[47,21,4.6]);
+  flyWire(w,'ngnd','perf',[6.42,Y,-9.6],'strip',[32,21,-3]);
+  flyWire(w,'nda','perf',[11.5,Y,9.6],'mic',[73.5,25.7,6.35]);
+  flyWire(w,'nck','perf',[16.58,Y,9.6],'mic',[73.5,25.7,3.81]);
+  flyWire(w,'nws','perf',[19.12,Y,9.6],'mic',[73.5,25.7,-1.27]);
+  flyWire(w,'n3v3','perf',[8.96,Y,-9.6],'mic',[73.5,25.7,-6.35]);
+  flyWire(w,'ngnd','perf',[6.42,Y,-9.6],'mic',[73.5,25.7,-3.81]);
+  flyWire(w,'nbat','akku',[18,8,6],'perf',[38.2,Y,-15.2]);
+  flyWire(w,'ngnd','akku',[18,8,-6],'perf',[6.42,Y,-9.6]);
+
+  lighter(w,42.5,-48);
+  dim(w,[-2.5,0,30],[87.5,0,30],'90',[0,0,2.5]);
+  dim(w,[98,0,-20],[98,0,20],'40',[2.5,0,0]);
+  dim(w,[-11,0,20],[-11,28,20],'28',[2.5,0,0]);
+  w.root.visible=false;
+  scene.add(w.root);
+}
+
+function buildFinal(){
+  const w=world.final=newWorld();
+  const O=[-1.5,-12.5,62.5,12.5];
+
+  part(w,'foot',[0,-50,0]);
+  add(w,'foot',box(18.6,2,18),'fill2',[30.5,-3.5,0]);
+  add(w,'foot',box(13,2.5,13),'fill',[30.5,-1.25,0]);
+  add(w,'foot',cyl(2,3,14),'fill3',[30.5,1,0]);
+  tag(w,'foot',[24,-3.5,9],[16,-6,31]);
+
+  part(w,'case',[0,-31,0]);
+  const ring=rr(new THREE.Shape(),...O,5);ring.holes.push(rr(new THREE.Path(),-.2,-11.2,61.2,11.2,3.7));
+  add(w,'case',ext(ring,9.4),'fill',[0,0,0]);
+  add(w,'case',ext(rr(new THREE.Shape(),-.2,-11.2,61.2,11.2,3.7),2.2),'fill',[0,0,0]);
+  tag(w,'case',[10,5,12.5],[2,5,25]);
+
+  part(w,'akku',[0,-13,0]);
+  add(w,'akku',box(50,6,20),'fill2',[33,5.2,0]);
+  add(w,'akku',box(3,4.6,9),'fill',[59.4,5.2,0]);
+  tag(w,'akku',[58,6,-6],[70,6,-14]);
+
+  part(w,'sd',[0,3,0]);
+  add(w,'sd',box(14,2,15),'fill',[33.5,9.4,0]);
+  add(w,'sd',box(11,.8,16),'fill2',[33.5,9.4,1.2]);
+  tag(w,'sd',[26.5,9.4,0],[14,9.4,0]);
+
+  part(w,'pcb',[0,17,0]);
+  add(w,'pcb',box(61,1,22),'fill3',[30.5,10.9,0]);
+  add(w,'pcb',box(3.2,1.8,2.5),'fill2',[39,12.3,-8.2]);
+  ['t','b'].forEach(l=>{pcbCv[l]=document.createElement('canvas');pcbCv[l].width=61*36;pcbCv[l].height=22*36;
+    pcbTex[l]=new THREE.CanvasTexture(pcbCv[l]);pcbTex[l].anisotropy=8});
+  flat(w,'pcb',pcbTex.t,61,22,11.42,[30.5,0],-Math.PI/2,{pcb:'t'});
+  flat(w,'pcb',pcbTex.b,61,22,10.38,[30.5,0],Math.PI/2,{pcb:'b'});
+  tag(w,'pcb',[61,11,7],[73,11,12]);
+
+  part(w,'xiao',[0,33,0]);
+  const gx=new THREE.Group(); gx.position.set(11.5,11.4,0); w.parts.xiao.group.add(gx);
+  xiaoModel(w,'xiao',gx);
+  tag(w,'xiao',[1,14,0],[-11,16,0]);
+
+  part(w,'mic',[0,33,0]);
+  add(w,'mic',box(9.2,1,15.2),'fill3',[55.8,12.6,0]);
+  add(w,'mic',box(3,1,4),'fill2',[55.8,13.6,0]);
+  for(let i=0;i<6;i++)add(w,'mic',box(.64,1.4,.64),'fill',[52.3,11.9,-6.35+2.54*i]);
+  tag(w,'mic',[60,13,0],[72,15,0]);
+
+  part(w,'led',[0,25,0]);
+  add(w,'led',box(2,.9,1.25),'fill',[37,11.85,0]);
+  add(w,'led',box(1.6,.5,.8),'fill2',[37,11.65,5]);
+  tag(w,'led',[37,12.3,0],[37,20,-4]);
+
+  part(w,'sw',[0,27,-10]);
+  add(w,'sw',box(8.6,3.5,3.7),'fill',[46,13.15,-9.15]);
+  add(w,'sw',box(1.8,1.5,3.2),'fill2',[46,13.2,-12.1]);
+  tag(w,'sw',[50,14,-11],[56,17,-20]);
+
+  part(w,'lid',[0,57,0]);
+  const sk=rr(new THREE.Shape(),...O,5);sk.holes.push(rr(new THREE.Path(),-.2,-11.2,61.2,11.2,3.7));
+  add(w,'lid',ext(sk,7.1),'fill',[0,9.4,0]);
+  const topS=rr(new THREE.Shape(),-.2,-11.2,61.2,11.2,3.7);
+  topS.holes.push(circleP(29,0,5.5),triP(45,0,6.9,THREE.Path),circleP(37,0,1),circleP(55.8,0,.9));
+  add(w,'lid',ext(topS,1.5),'fill',[0,15,0]);
+  add(w,'lid',box(1.5,3.6,9.4),'fill3',[-.85,13.6,0]);
+  add(w,'lid',box(6,2.6,1.5),'fill3',[46,13.2,-11.85]);
+  tag(w,'lid',[20,16.5,-12.5],[12,21,-23]);
+
+  part(w,'k1',[0,76,0]);
+  tact(w,'k1',29,0,11.4,false);
+  add(w,'k1',cyl(5.2,3,28),'fill',[29,16.1,0]);
+  tag(w,'k1',[29,17.6,0],[29,25,-3]);
+  part(w,'k2',[0,76,0]);
+  tact(w,'k2',45,0,11.4,false);
+  add(w,'k2',ext(triP(45,0,6.1,THREE.Shape),3),'fill',[0,14.6,0]);
+  tag(w,'k2',[45,17.6,0],[45,25,-3]);
+
+  lighter(w,30.5,-36);
+
+  dim(w,[-1.5,0,22],[62.5,0,22],'64',[0,0,2.5]);
+  dim(w,[71,0,-12.5],[71,0,12.5],'25',[2.5,0,0]);
+  dim(w,[-9,0,12.5],[-9,16.5,12.5],'16.5',[2.5,0,0]);
+  w.root.visible=false;
+  scene.add(w.root);
+}
+
+const FIT={
+  steck:{c:[158,122,-6,9,0]},
+  druck:{c:[198,152,42.5,10,-22],o:[176,256,42.5,26,0]},
+  final:{c:[165,120,30.5,8,-16],o:[128,178,30.5,21,0]}
+};
+function fitVals(){
+  const f=FIT[cfg],o=f.o||f.c,u=cfg==='steck'?1:expl,m=i=>f.c[i]+(o[i]-f.c[i])*u;
+  return{w:m(0),h:m(1),t:V(m(2),m(3),m(4))};
+}
+const PROJ={iso:[1,.86,1.05],top:[0,1,.002],side:[0,.02,1]};
+function fit(){
+  if(!has3d)return;
+  const r=$('view3d').getBoundingClientRect(),a=Math.max(r.width,1)/Math.max(r.height,1),f=fitVals();
+  const hh=Math.max(f.h/2,f.w/2/a);
+  camera.left=-hh*a;camera.right=hh*a;camera.top=hh;camera.bottom=-hh;camera.updateProjectionMatrix();
+  camera.position.add(f.t.clone().sub(controls.target));
+  controls.target.copy(f.t);
+  renderer.setSize(r.width,r.height,false);
+  controls.update();invalidate();
+}
+function setProj(name,instant){
+  const d=V(...PROJ[name]).normalize().multiplyScalar(420),to=controls.target.clone().add(d);
+  document.querySelectorAll('#proj button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.proj===name)));
+  if(instant||reduced){camera.position.copy(to);controls.update();invalidate();return}
+  tween={from:camera.position.clone(),to,t0:performance.now(),ms:420};
+}
+function applyState(){
+  if(!has3d)return;
+  const w=world[cfg];
+  Object.values(w.parts).forEach(p=>{
+    const mode=partMode(p.id),ghost=mode==='ghost';
+    p.meshes.forEach(m=>{
+      const t=m.userData.tone;
+      if(t)m.material.color.set(mode==='hot'?C.mark:C[t]);
+      const o=ghost?.13:1; m.material.opacity=o; m.material.depthWrite=o>.5;
+      const e=m.children[0];
+      if(e){e.material.opacity=ghost?.2:1;e.material.color.set(C.ink)}
+    });
+    if(p.leader){p.leader.material.opacity=ghost?.15:1;p.leader.material.color.set(C.ink2)}
+  });
+  w.wires.forEach(x=>{
+    const on=netOn(x.net); x.mesh.material.opacity=on?1:.1; x.mesh.material.depthWrite=on;
+    x.mesh.material.color.set(x.real||C[NETS[cfg][x.net].g]);
+  });
+  if(world.final&&cfg==='final')paintPcbTex();
+  markPins();invalidate();
+}
+function poseWorld(w,v){
+  Object.values(w.parts).forEach(p=>p.group.position.set(p.ex[0]*v,p.ex[1]*v,p.ex[2]*v));
+  updateStretch(w);
+  const on=v<.02;
+  w.dims.forEach(d=>{d.line.visible=on;(d.line.userData.t||[]).forEach(t=>t.visible=on);d.el.hidden=!on});
+}
+function setExplode(v){
+  expl=v;
+  if(cfg==='steck')return;
+  poseWorld(world[cfg],v);
+  fit();
+}
+function buildPins(){
+  const box=$('pins');
+  box.querySelectorAll('.pin').forEach(e=>e.remove());
+  if(!has3d)return;
+  PARTS[cfg].forEach(p=>{
+    const q=world[cfg].parts[p.id]; if(!q||!q.tagAt)return;
+    const b=document.createElement('button');
+    b.className='pin'; b.textContent=p.no; b.dataset.sel='part:'+p.id; b.title=p.name; b.setAttribute('aria-label',p.name);
+    box.appendChild(b); q.pin=b;
+  });
+  markPins();
+}
+function markPins(){
+  document.querySelectorAll('.pin').forEach(b=>{
+    const id=b.dataset.sel.split(':')[1],m=partMode(id);
+    b.classList.toggle('hot',m==='hot'); b.classList.toggle('off',m==='ghost');
+  });
+}
+const INNER={final:['xiao','mic','sd','pcb','akku'],druck:['xiao','mic','sd','perf','strip','akku','sw','led']};
+function updateHide(){
+  Object.values(world[cfg].parts).forEach(p=>{
+    if(!p.pin)return;
+    const hide=cfg!=='steck'&&expl<.3&&INNER[cfg].includes(p.id)&&partMode(p.id)==='normal';
+    p.pin.hidden=hide; if(p.leader)p.leader.visible=!hide;
+  });
+}
+function updatePins(){
+  const r=renderer.domElement.getBoundingClientRect(),w=world[cfg],v=new THREE.Vector3();
+  const place=(el,x,y)=>{el.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px)'};
+  Object.values(w.parts).forEach(p=>{
+    if(!p.pin)return;
+    p.group.updateMatrixWorld();
+    v.copy(p.tagAt); p.group.localToWorld(v); v.project(camera);
+    place(p.pin,(v.x+1)/2*r.width,(1-v.y)/2*r.height);
+  });
+  w.dims.forEach(d=>{
+    if(d.el.hidden)return;
+    v.copy(d.at).project(camera);
+    d.el.style.transform='translate(-50%,-50%) translate('+Math.round((v.x+1)/2*r.width)+'px,'+Math.round((1-v.y)/2*r.height)+'px)';
+  });
+}
+function loop(){
+  requestAnimationFrame(loop);
+  if(tween){
+    const u=Math.min(1,(performance.now()-tween.t0)/tween.ms),e=u*u*(3-2*u);
+    camera.position.lerpVectors(tween.from,tween.to,e);controls.update();dirty=true;
+    if(u>=1)tween=null;
+  }
+  if(dirty&&view==='3d'){dirty=false;updateHide();renderer.render(scene,camera);updatePins()}
+}
+function pickAt(cx,cy){
+  const r=renderer.domElement.getBoundingClientRect();
+  const n=new THREE.Vector2((cx-r.left)/r.width*2-1,-((cy-r.top)/r.height)*2+1);
+  ray.setFromCamera(n,camera);
+  const hits=ray.intersectObjects(world[cfg].pick,false);
+  for(const h of hits){
+    const u=h.object.userData;
+    if(!u.proxy&&h.object.material.opacity<.5)continue;
+    if(u.pcb){
+      const g=world.final.parts.pcb.group.position,net=hitPcb(u.pcb,h.point.x-g.x,h.point.z-g.z);
+      if(net)return{type:'net',id:net};
+    }
+    return u.sel;
+  }
+  return null;
+}
+function nameOf(s){
+  if(!s)return'';
+  if(s.type==='part'){const p=PARTS[cfg].find(x=>x.id===s.id);return p?p.name:''}
+  const n=NETS[cfg][s.id];return n?n.a+' → '+n.b:'';
+}
+function init3d(){
+  const box=$('view3d');
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+  renderer.setClearColor(0x000000,0);
+  box.prepend(renderer.domElement);
+  scene=new THREE.Scene();
+  camera=new THREE.OrthographicCamera(-1,1,1,-1,-2000,3000);
+  scene.add(new THREE.AmbientLight(0xffffff,.8));
+  const d=new THREE.DirectionalLight(0xffffff,.26); d.position.set(-.4,1,.7); scene.add(d);
+  controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enablePan=true; controls.minZoom=.6; controls.maxZoom=8; controls.screenSpacePanning=true;
+  controls.addEventListener('change',invalidate);
+  ray=new THREE.Raycaster();
+  buildSteck(); buildDruck(); buildFinal();
+  has3d=true;
+  controls.target.copy(fitVals().t);
+  camera.position.copy(controls.target).add(V(...PROJ.iso).normalize().multiplyScalar(420));
+  const cv=renderer.domElement;let down=null,moveQ=null;
+  cv.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];$('tip').hidden=true});
+  cv.addEventListener('pointerup',e=>{
+    if(!down)return;
+    if(Math.hypot(e.clientX-down[0],e.clientY-down[1])<5)setSel(pickAt(e.clientX,e.clientY));
+    down=null;
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(e.pointerType==='touch'||e.buttons)return;
+    if(moveQ)return;
+    moveQ=[e.clientX,e.clientY];
+    requestAnimationFrame(()=>{
+      const s=pickAt(moveQ[0],moveQ[1]),tip=$('tip');
+      if(s){
+        const r=cv.getBoundingClientRect();
+        tip.textContent=nameOf(s); tip.hidden=false;
+        tip.style.transform='translate('+Math.min(moveQ[0]-r.left+14,r.width-200)+'px,'+(moveQ[1]-r.top+14)+'px)';
+        cv.style.cursor='pointer';
+      }else{tip.hidden=true;cv.style.cursor='grab'}
+      moveQ=null;
+    });
+  });
+  cv.addEventListener('pointerleave',()=>{$('tip').hidden=true});
+  new ResizeObserver(()=>{fit();if(view==='pcb')drawPcbView()}).observe(box);
+  loop();
+}
+
+/* ---------- Architektur ---------- */
+function renderSchema(){
+  const f=cfg==='final',bat=cfg!=='steck',L=[],B=[],N=NETS[cfg];
+  const line=(n,d)=>L.push('<path class="hit" data-sel="net:'+n+'" d="'+d+'"/><path class="nl" data-net="'+n+'" style="stroke:var(--'+N[n].g+')" d="'+d+'"/>');
+  const dot=(n,x,y)=>L.push('<circle class="nd" data-net="'+n+'" cx="'+x+'" cy="'+y+'" r="4" style="fill:var(--'+N[n].g+')"/>');
+  const blk=(id,x,y,w,h,title,sub,tx,ty,pl,pr)=>{
+    let s='<g class="blk" data-sel="part:'+id+'" data-part="'+id+'"><rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"/>';
+    if(title)s+='<text class="t" x="'+(tx||x+w/2)+'" y="'+(ty||y+h/2+5)+'" text-anchor="middle">'+title+'</text>';
+    if(sub)s+='<text class="s" x="'+(tx||x+w/2)+'" y="'+((ty||y+h/2+5)+18)+'" text-anchor="middle">'+sub+'</text>';
+    (pl||[]).forEach(([t,py])=>{s+='<text x="'+(x+9)+'" y="'+(py+4)+'">'+t+'</text>'});
+    (pr||[]).forEach(([t,py])=>{s+='<text x="'+(x+w-9)+'" y="'+(py+4)+'" text-anchor="end">'+t+'</text>'});
+    B.push(s+'</g>');
+  };
+  const y=i=>180+40*i;
+  blk('xiao',360,150,240,300,'XIAO ESP32-S3','2 Kerne, 8 MB RAM',0,298,
+    ['D0','D1','D2','D3','D4','D5','D6'].map((t,i)=>[t,y(i)]),
+    ['5V','GND','3V3','D10','D9','D8','D7'].map((t,i)=>[t,y(i)]));
+  blk('k1',150,164,100,32,bat?'Knopf ○':'Knopf 1');
+  blk('k2',150,204,100,32,bat?'Knopf △':'Knopf 2');
+  blk('mic',150,262,100,178,'Mikrofon','',200,282,[['VDD',300],['GND',360],['L/R',420]],[['SD',300],['SCK',380],['WS',420]]);
+  blk('led',170,510,130,40,'330 Ω + LED');
+  blk('sd',720,130,150,310,f?'microSD-Sockel':'Micro-SD-Modul','',795,152,[['VCC',180],['GND',220],['MOSI',300],['MISO',340],['SCK',380],['CS',420]]);
+  line('nk1','M360 180 H250'); line('nk2','M360 220 H250');
+  line('nda','M360 300 H250'); line('nck','M360 380 H250'); line('nws','M360 420 H250');
+  line('nled','M360 340 H320 V530 H300');
+  line('n3v3','M600 260 H650 V118 H110 V300 H150');
+  line('ngnd','M600 220 H720'); line('ngnd','M680 220 V600 H90 V180');
+  line('ngnd','M150 180 H90'); line('ngnd','M150 220 H90'); line('ngnd','M150 360 H90'); line('ngnd','M170 530 H90');
+  line('nlr','M150 420 H90');
+  line('nmosi','M600 300 H720'); line('nmiso','M600 340 H720'); line('nsck','M600 380 H720'); line('ncs','M600 420 H720');
+  dot('ngnd',680,220);[220,360,420,530].forEach(q=>dot('ngnd',90,q));
+  if(bat){
+    blk('akku',340,50,120,40,'Akku 600 mAh');
+    blk('sw',490,50,100,40,'Schalter');
+    line('nbat','M460 70 H490'); line('nbat','M540 90 V150');
+    line('ngnd','M340 70 H70 V600 H90');
+    line('n3v3','M650 180 H720'); dot('n3v3',650,180);
+    L.push('<text class="s" x="608" y="172">frei</text>'+(f?'<text class="s" x="662" y="172">C1 100 µF</text>':''));
+  }else{
+    blk('usb',430,50,100,40,'USB-C 5 V');
+    line('n5v','M480 90 V150'); line('n5v','M600 180 H720');
+  }
+  L.push('<text class="s" x="346" y="264" text-anchor="end">frei</text>');
+  $('sch').innerHTML=L.join('')+B.join('');
+  markSchema();
+}
+function markSchema(){
+  document.querySelectorAll('#sch .nl,#sch .nd,#plan .pn').forEach(e=>{
+    const on=netOn(e.dataset.net),hot=on&&(sel||group);
+    e.classList.toggle('off',!on); e.classList.toggle('hot',!!hot);
+  });
+  document.querySelectorAll('#sch .blk,#plan .sy').forEach(e=>{
+    const m=partMode(e.dataset.part);
+    e.classList.toggle('hot',m==='hot'); e.classList.toggle('off',m==='ghost');
+  });
+}
+
+/* ---------- Schaltplan ---------- */
+function renderPlan(){
+  const bat=cfg!=='steck',f=cfg==='final',W=[],Y=[];
+  const T=(x,y,t,c,a)=>'<text x="'+x+'" y="'+y+'"'+(c?' class="'+c+'"':'')+(a?' text-anchor="'+a+'"':'')+'>'+t+'</text>';
+  const P=(d,c)=>'<path'+(c?' class="'+c+'"':'')+' d="'+d+'"/>';
+  const R=(x,y,w,h,c)=>'<rect class="'+c+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"/>';
+  const O=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="2.5"/>';
+  const pn=(n,s)=>W.push('<g class="pn" data-net="'+n+'" data-sel="net:'+n+'">'+s+'</g>');
+  const wire=(n,d,...j)=>pn(n,P(d,'hit')+P(d,'ha')+P(d,'wi')+j.map(([x,y])=>'<circle class="jn" cx="'+x+'" cy="'+y+'" r="3.5"/>').join(''));
+  const gnd=(x,y)=>{const d='M'+(x-11)+' '+y+'h22M'+(x-7)+' '+(y+5)+'h14M'+(x-3)+' '+(y+10)+'h6';pn('ngnd',P(d,'hit')+P(d,'ha')+P(d,'wi y'))};
+  const flag=(x,y)=>{const d='M'+x+' '+y+'v-22';pn('n3v3',P(d,'hit')+P(d,'ha')+P(d,'wi')+P('M'+(x-10)+' '+(y-22)+'h20','wi y')+T(x,y-29,'+3V3','','middle'))};
+  const sym=(id,x,y,w,h,s)=>Y.push('<g class="sy" data-part="'+id+'" data-sel="part:'+id+'">'+R(x,y,w,h,'ha')+s+'</g>');
+  const ic=(id,x,y,w,h,ref,val,L,Q,H)=>{
+    let d='',s=R(x,y,w,h,'bd')+T(x,y-8,ref)+T(x+w/2,y+h+20,val,'','middle');
+    L.forEach(([t,p,no])=>{d+='M'+x+' '+p+'h-30';s+=T(x+8,p+4.5,t,'p')+(no?T(x-15,p-5,no,'n','middle'):'')});
+    Q.forEach(([t,p,no])=>{d+='M'+(x+w)+' '+p+'h30';s+=T(x+w-8,p+4.5,t,'p','end')+(no?T(x+w+15,p-5,no,'n','middle'):'')});
+    (H||[]).forEach(([t,p])=>{d+='M'+p+' '+y+'v-30';s+=T(p,y+17,t,'p','middle')});
+    sym(id,x-30,y-(H?30:0),w+60,h+(H?30:0),s+P(d));
+  };
+  const nc=(x,y,a)=>sym('xiao',x-6,y-6,12,12,P('M'+(x-5)+' '+(y-5)+'l10 10m0-10l-10 10')+T(a==='end'?x-11:x+11,y+4.5,'frei','',a));
+  const knopf=(id,x,y,ref,val)=>sym(id,x-30,y-26,60,50,P('M'+(x-26)+' '+y+'h9.5M'+(x+26)+' '+y+'h-9.5M'+(x-17)+' '+(y-9)+'h34M'+x+' '+(y-9)+'v-11m-7 0h14')+O(x-14,y)+O(x+14,y)+T(x+12,y-13,ref)+T(x,y+19,val,'','middle'));
+  const res=(id,x,y,ref,val)=>sym(id,x-28,y-24,56,50,P('M'+(x-26)+' '+y+'h8M'+(x+26)+' '+y+'h-8')+R(x-18,y-6,36,12,'bd')+T(x,y-11,ref,'','middle')+T(x,y+21,val,'','middle'));
+  const resV=(id,x,y,ref,val)=>sym(id,x-8,y-28,50,56,P('M'+x+' '+(y-26)+'v8M'+x+' '+(y+26)+'v-8')+R(x-6,y-18,12,36,'bd')+T(x+12,y-3,ref)+T(x+12,y+13,val));
+  const led=(id,x,y,ref,val)=>sym(id,x-24,y-22,48,62,P('M'+(x+8)+' '+(y-8)+'L'+(x-8)+' '+y+'L'+(x+8)+' '+(y+8)+'ZM'+(x-8)+' '+(y-8)+'v16M'+(x+8)+' '+y+'h14M'+(x-8)+' '+y+'h-14M'+(x+3)+' '+(y-11)+'l-6-7l.5 4.5m-.5-4.5l4.2 1.7M'+(x+9)+' '+(y-11)+'l-6-7l.5 4.5m-.5-4.5l4.2 1.7')+T(x,y+23,ref,'','middle')+T(x,y+38,val,'','middle'));
+  const L=i=>240+50*i;
+
+  // links vom XIAO: Knöpfe, LED, Mikrofon
+  wire('nk1','M420 '+L(0)+'H326'); wire('nk2','M420 '+L(1)+'H326');
+  wire('ngnd','M274 '+L(0)+'H220V312'); wire('ngnd','M274 '+L(1)+'H220',[220,L(1)]); gnd(220,312);
+  knopf('k1',300,L(0),'SW1',bat?'Knopf ○':'Knopf 1'); knopf('k2',300,L(1),'SW2',bat?'Knopf △':'Knopf 2');
+  nc(420,L(2),'end');
+  wire('nda','M420 '+L(3)+'H230');
+  wire('nled','M420 '+L(4)+'H386'); wire('nled','M334 '+L(4)+'H316');
+  res('led',360,L(4),'R1','330'); led('led',294,L(4),'D1','LED');
+  wire('ngnd','M272 '+L(4)+'H250V462'); gnd(250,462);
+  wire('nck','M420 '+L(5)+'H230'); wire('nws','M420 '+L(6)+'H230');
+  ic('mic',100,360,100,212,'U2','I2S-Mikrofon',[['VDD',L(3)],['GND',L(5)],['L/R',L(6)]],[['SD',L(3)],['SCK',L(5)],['WS',L(6)]]);
+  flag(70,L(3));
+  wire('ngnd','M70 '+L(5)+'H50V562'); wire('nlr','M70 '+L(6)+'H50',[50,L(6)]); gnd(50,562);
+
+  // rechts vom XIAO: 3V3, SD
+  wire('n3v3','M640 '+L(2)+'H680'); flag(680,L(2));
+  wire('ngnd','M640 '+L(1)+'H800',[730,L(1)]); wire('ngnd','M730 '+L(1)+'V312'); gnd(730,312);
+  wire('nmosi','M640 '+L(3)+'H800'); wire('nmiso','M640 '+L(4)+'H800'); wire('nsck','M640 '+L(5)+'H800'); wire('ncs','M640 '+L(6)+'H800');
+  const sdL=f?[['VDD',L(0),'4'],['VSS',L(1),'6'],['MOSI',L(3),'3'],['MISO',L(4),'7'],['SCK',L(5),'5'],['CS',L(6),'2']]
+    :[['VCC',L(0)],['GND',L(1)],['MOSI',L(3)],['MISO',L(4)],['SCK',L(5)],['CS',L(6)]];
+  ic('sd',830,200,120,372,f?'J1':'U3',f?'microSD-Sockel':'Micro-SD-Modul',sdL,f?[['DAT1',L(4),'8'],['DAT2',L(5),'1']]:[]);
+
+  const top=[];
+  if(bat){
+    top.push(['BAT+',500],['BAT−',560]);
+    nc(640,L(0));
+    wire('n3v3','M800 '+L(0)+'H700',...(f?[[770,L(0)]]:[])); flag(700,L(0));
+    wire('nbat','M500 170V90H564'); wire('nbat','M616 90H680V116');
+    sym('sw',560,64,60,56,P('M564 90h9.5M616 90h-9.5M576 90L602 77')+O(576,90)+O(604,90)+T(590,64,'SW3','','middle')+T(590,113,'Schalter','','middle'));
+    wire('ngnd','M680 134V172'); wire('ngnd','M560 170V150H680',[680,150]); gnd(680,172);
+    sym('akku',648,102,132,38,P('M666 116h28M673 122h14M666 128h28M673 134h14')+T(655,112,'+','','middle')+T(704,117,'BT1')+T(704,133,'LiPo 3.7 V'));
+  }else{
+    top.push(['USB',530]);
+    wire('n5v','M640 '+L(0)+'H800'); wire('n5v','M530 130V170');
+    sym('usb',490,74,240,56,R(490,90,80,40,'bd')+T(530,115,'USB-C','p','middle')+T(490,82,'J2')+T(582,115,'Mac oder Powerbank'));
+    W.push(T(720,L(0)-8,'+5V','','middle'));
+  }
+  ic('xiao',450,200,160,372,'U1','XIAO ESP32-S3',
+    ['D0','D1','D2','D3','D4','D5','D6'].map((t,i)=>[t,L(i),String(i+1)]),
+    ['5V','GND','3V3','D10','D9','D8','D7'].map((t,i)=>[t,L(i),String(14-i)]),top);
+
+  if(f){
+    wire('n3v3','M770 '+L(0)+'V261'); wire('ngnd','M770 269V'+L(1),[770,L(1)]);
+    sym('pcb',708,250,76,32,P('M759 261h22M759 269h22')+T(753,262,'C1','','end')+T(753,278,'100 µF','','end'));
+    wire('ncs','M725 '+L(6)+'V600H734',[725,L(6)]); wire('n3v3','M786 600H796'); flag(796,600);
+    res('sd',760,600,'R2','10k');
+    wire('n3v3','M980 '+L(4)+'V421'); wire('n3v3','M980 369V345'); flag(980,345);
+    wire('n3v3','M980 '+L(5)+'H1035V421'); wire('n3v3','M1035 369V345'); flag(1035,345);
+    resV('sd',980,395,'R3','10k'); resV('sd',1035,395,'R4','10k');
+  }
+
+  let fr=R(10,10,1100,772,'fr')+R(30,30,1060,732,'fr l'),d='';
+  for(let i=0;i<6;i++){
+    const x=30+i*1060/6;
+    if(i)d+='M'+x+' 10V30M'+x+' 762V782';
+    fr+=T(x+1060/12,25,i+1,'f','middle')+T(x+1060/12,777,i+1,'f','middle');
+  }
+  'ABCDE'.split('').forEach((a,i)=>{
+    const y=30+i*146.4;
+    if(i)d+='M10 '+y+'H30M1090 '+y+'H1110';
+    fr+=T(20,y+78,a,'f','middle')+T(1100,y+78,a,'f','middle');
+  });
+  fr+=P(d+'M680 702H1090M680 732H1090','fr l');
+  fr+=T(692,723,'Titel:','f')+T(748,723,'Take-Marker '+BLOCK[cfg][1],'f');
+  fr+=T(692,753,'Datum:','f')+T(748,753,cfg==='steck'?'16.11.2026':'02.11.2026','f')+T(870,753,cfg==='steck'?'echte Teile':'Entwurf','f')+T(990,753,'Blatt:','f')+T(1044,753,(['steck','druck','final'].indexOf(cfg)+1)+'/3','f');
+  $('plan').innerHTML=fr+W.join('')+Y.join('');
+  markSchema();
+}
+
+/* ---------- Platine 2D ---------- */
+function drawPcbView(){
+  const dpr=Math.min(devicePixelRatio||1,2);
+  [['pcbT','t'],['pcbB','b']].forEach(([id,l])=>{
+    const cv=$(id),W=cv.clientWidth||600,m=Math.max(22,W*.04),s=(W-m*2)/61,Hh=22*s+m*2;
+    cv.width=W*dpr; cv.height=Hh*dpr; cv.style.height=Hh+'px';
+    const c=cv.getContext('2d'); c.scale(dpr,dpr);
+    c.fillStyle=C.fill; c.fillRect(0,0,W,Hh);
+    paintPcb(c,l,s,m,m,{bg:C.sheet,cuT:C.cutop,cuB:C.cubot,silk:C.ink,ink:C.ink,flip:false});
+    c.strokeStyle=C.ink; c.lineWidth=1.5; c.strokeRect(m,m,61*s,22*s);
+    c.fillStyle=C.ink; c.font='400 12px "B612 Mono",monospace'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('61 mm',W/2,m/2);
+    c.save(); c.translate(m/2,Hh/2); c.rotate(-Math.PI/2); c.fillText('22 mm',0,0); c.restore();
+    cv._map={m,s};
+  });
+}
+
+/* ---------- Panel ---------- */
+function renderPanel(){
+  const p=[];
+  if(view==='pcb')p.push('<h2>So bauen wir sie</h2><ol>'+STEPS.map(s=>'<li><span>'+s+'</span></li>').join('')+'</ol>');
+  if(cfg==='steck'){
+    p.push('<h2>Steckliste</h2>');
+    STECK.forEach(([sl,t,f],i)=>p.push('<button class="row" data-sel="'+sl+'" aria-expanded="false"><span class="no">'+(i+1)+'</span><span class="nm">'+t+'</span><span class="pr">'+(f||'')+'</span><span class="pl"></span></button>'));
+    p.push('<h2>Achtung</h2><ul>'+WARN.steck.map(w=>'<li>'+w+'</li>').join('')+'</ul>');
+  }
+  p.push('<h2>Stückliste</h2>');
+  PARTS[cfg].forEach(x=>{
+    p.push('<button class="row" data-sel="part:'+x.id+'" aria-expanded="false"><span class="no">'+x.no+'</span><span class="nm">'+x.name+'</span><span class="pr">'+x.pr+'</span><span class="pl">+</span></button>');
+    p.push('<div class="det" data-det="part:'+x.id+'" hidden><dl>'+x.facts.map(f=>'<dt>'+f[0]+'</dt><dd>'+f[1]+'</dd>').join('')+'</dl></div>');
+  });
+  p.push('<div class="sum"><span>'+SUM[cfg][0]+'</span><span>'+SUM[cfg][1]+'</span></div>');
+  p.push('<h2>Leitungen</h2>');
+  Object.entries(NETS[cfg]).forEach(([id,n])=>{
+    p.push('<button class="row" data-sel="net:'+id+'" aria-expanded="false"><i class="sq" style="background:var(--'+n.g+')"></i><span class="nm">'+n.a+' → '+n.b+'</span><span class="pr">'+GROUPS[n.g]+'</span><span class="pl">+</span></button>');
+    p.push('<div class="det" data-det="net:'+id+'" hidden><dl><dt>Signal</dt><dd>'+n.d+'</dd><dt>Teile</dt><dd>'+n.parts.map(q=>{const r=PARTS[cfg].find(v=>v.id===q);return r?r.name:q}).join(', ')+'</dd></dl></div>');
+  });
+  if(cfg!=='steck')p.push('<h2>Offen</h2><ul>'+WARN[cfg].map(w=>'<li>'+w+'</li>').join('')+'</ul>');
+  $('panel').innerHTML=p.join('');
+  markPanel();
+}
+function markPanel(){
+  const k=key(sel);
+  document.querySelectorAll('.row').forEach(r=>r.setAttribute('aria-expanded',String(r.dataset.sel===k)));
+  document.querySelectorAll('.det').forEach(d=>{d.hidden=d.dataset.det!==k});
+}
+function renderChips(){
+  const used=new Set(Object.values(NETS[cfg]).map(n=>n.g));
+  $('chips').innerHTML=Object.keys(GROUPS).filter(g=>used.has(g)).map(g=>'<button class="chip" id="chip-'+g+'" data-group="'+g+'" aria-pressed="'+(group===g)+'"><i style="background:var(--'+g+')"></i>'+GROUPS[g]+'</button>').join('');
+}
+function renderBlock(){$('block').innerHTML=BLOCK[cfg].map(t=>'<div>'+t+'</div>').join('')}
+
+/* ---------- Ablauf ---------- */
+function sync(){
+  applyState(); markPanel(); markSchema();
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.group===group)));
+  if(view==='pcb')drawPcbView();
+}
+function applyView(){
+  document.querySelectorAll('#viewSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
+  document.querySelectorAll('#cfgSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cfg===cfg)));
+  $('view3d').hidden=view!=='3d'; $('viewSch').hidden=view!=='sch'; $('viewPlan').hidden=view!=='plan'; $('viewPcb').hidden=view!=='pcb';
+  $('proj').hidden=view!=='3d'||!has3d; $('expl').hidden=view!=='3d'||cfg==='steck'||!has3d;
+  $('chips').hidden=view==='pcb'; $('block').hidden=view!=='3d';
+  renderPanel();
+  if(view==='sch')renderSchema();
+  if(view==='plan')renderPlan();
+  if(view==='pcb')drawPcbView();
+  if(view==='3d'&&has3d){fit();invalidate()}
+}
+function setCfg(c){
+  if(c===cfg)return;
+  cfg=c; sel=null; group=null;
+  if(c!=='final'&&view==='pcb')view='3d';
+  if(has3d){
+    Object.keys(world).forEach(k=>{
+      world[k].root.visible=k===c;
+      world[k].dims.forEach(d=>{d.el.hidden=true});
+      Object.values(world[k].parts).forEach(p=>{p.pin=null});
+    });
+    if(c==='steck')world.steck.dims.forEach(d=>{d.el.hidden=false});
+    buildPins();
+    controls.target.copy(fitVals().t);
+    setProj('iso',true);
+    if(c==='steck')fit();else setExplode(expl);
+  }
+  renderChips(); renderBlock(); applyView(); applyState();
+  $('panel').scrollTop=0;
+}
+function setView(v){
+  if(v==='pcb'&&cfg!=='final'){view=v;setCfg('final');return}
+  view=v; applyView(); if(has3d)applyState();
+}
+document.addEventListener('click',e=>{
+  const s=e.target.closest('[data-sel]');
+  if(s){const[type,id]=s.dataset.sel.split(':');setSel({type,id});return}
+  const g=e.target.closest('[data-group]');
+  if(g){group=group===g.dataset.group?null:g.dataset.group;sel=null;sync();return}
+  const v=e.target.closest('[data-view]');if(v){setView(v.dataset.view);return}
+  const c=e.target.closest('[data-cfg]');if(c){setCfg(c.dataset.cfg);return}
+  const p=e.target.closest('[data-proj]');if(p){setProj(p.dataset.proj);return}
+  const k=e.target.closest('#pcbT,#pcbB');
+  if(k&&k._map){
+    const r=k.getBoundingClientRect(),{m,s}=k._map,x=(e.clientX-r.left-m)/s,z=(e.clientY-r.top-m)/s-11,l=k.id==='pcbT'?'t':'b';
+    const n=hitPcb(l,x,z);
+    if(n){setSel({type:'net',id:n});return}
+    const q=COMPS.find(q=>q.l===l&&x>=q.x&&x<=q.x+q.w&&z>=q.z&&z<=q.z+q.d);
+    setSel(q?{type:'part',id:q.id}:(x>=0&&x<=61&&z>=-11&&z<=11?{type:'part',id:'pcb'}:null));
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(sel||group)){sel=null;group=null;sync()}});
+$('explR').addEventListener('input',e=>{setExplode(+e.target.value/100);invalidate()});
+
+function retheme(){
+  readTheme();
+  if(has3d){
+    paintBoard(); paintPerf();
+    Object.values(world).forEach(w=>w.dims.forEach(d=>{
+      if(d.line.material)d.line.material.color.set(d.isRef?C.ink2:C.ink);
+      (d.line.userData.t||[]).forEach(t=>t.material.color.set(C.ink));
+    }));
+    applyState();
+  }
+  if(view==='pcb')drawPcbView();
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',retheme);
+new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+readTheme();
+try{
+  if(!window.THREE||!THREE.OrbitControls)throw new Error('three');
+  init3d();
+  document.querySelectorAll('#proj button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.proj==='iso')));
+  poseWorld(world.druck,1); poseWorld(world.final,1);
+  buildPins();
+}catch(err){
+  has3d=false;
+  if(renderer&&renderer.domElement)renderer.domElement.remove();
+  view='sch';
+  const v=$('v3d'); v.disabled=true; v.title='3D braucht WebGL';
+}
+renderChips(); renderBlock(); applyView(); renderSchema();
+if(has3d)applyState();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(has3d){paintBoard();paintPcbTex();invalidate()}if(view==='pcb')drawPcbView()});
+})();
+</script>
+
+<a href="../" class="tm-back" style="position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:9999;
+font:600 12px/1 'B612','Avenir Next',system-ui,sans-serif;letter-spacing:.02em;text-decoration:none;color:#EDF2E7;background:#13302A;
+padding:8px 11px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.25)">← Take-Marker</a>
+
+</body></html>

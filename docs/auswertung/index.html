@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Take-Marker Auswertung</title>
+<style>
+:root{
+  --paper:#F5F3EE; --ink:#151515; --ink2:#55524C; --rule:#D8D3C8; --band:#E8DFCB;
+  --mark:#C2321F; --wave:#151515; --hover:#ECE7DC;
+  --serif:"Iowan Old Style","Charter","Georgia",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#121211; --ink:#ECE9E2; --ink2:#A39F96; --rule:#33312D; --band:#3A3326;
+  --mark:#F0654F; --wave:#ECE9E2; --hover:#1E1D1B;
+}}
+:root[data-theme="dark"]{
+  --paper:#121211; --ink:#ECE9E2; --ink2:#A39F96; --rule:#33312D; --band:#3A3326;
+  --mark:#F0654F; --wave:#ECE9E2; --hover:#1E1D1B;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+main{max-width:1120px;margin:0 auto;padding:40px 32px 80px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1.5px solid var(--ink);padding-bottom:14px}
+header .marke{font:600 13px/1 var(--sans);letter-spacing:.02em}
+header h1{font:400 44px/1 var(--serif);margin:0;letter-spacing:-.01em}
+header .neu{font-size:13px;text-decoration:underline;text-underline-offset:3px}
+
+#drop{margin-top:48px;border:1.5px dashed var(--rule);min-height:52vh;display:grid;place-items:center;text-align:center;padding:32px;transition:background .15s,border-color .15s}
+#drop.ueber{background:var(--hover);border-color:var(--ink)}
+#drop p{font:400 30px/1.25 var(--serif);margin:0 0 14px}
+#drop label{font-size:14px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#drop input{position:absolute;width:1px;height:1px;opacity:0}
+#wahl{margin-top:20px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+#wahl button{border:1.5px solid var(--ink);padding:6px 14px;font:400 15px var(--mono)}
+#fehler{margin-top:16px;color:var(--mark);font-size:14px}
+
+.fakten{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-bottom:1px solid var(--rule)}
+.fakt{padding:18px 16px 18px 0}
+.fakt+.fakt{padding-left:16px;border-left:1px solid var(--rule)}
+.fakt dt{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.fakt dd{margin:10px 0 0;font:400 30px/1 var(--serif);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fakt dd small{font:400 13px var(--sans);color:var(--ink2);margin-left:4px}
+.fakt.alarm dd{color:var(--mark)}
+
+.spur{margin-top:28px;position:relative;user-select:none}
+.spur canvas{display:block;width:100%;height:150px;cursor:crosshair}
+.achse{position:relative;height:20px;font:400 11px var(--mono);color:var(--ink2);border-top:1px solid var(--ink)}
+.achse span{position:absolute;top:5px;transform:translateX(-50%);white-space:nowrap}
+#tip{position:absolute;top:-24px;transform:translateX(-50%);font:400 11px var(--mono);background:var(--ink);color:var(--paper);padding:3px 6px;pointer-events:none;white-space:nowrap}
+.transport{display:flex;align-items:center;gap:14px;margin-top:14px}
+.transport button{width:36px;height:36px;border:1.5px solid var(--ink);display:grid;place-items:center}
+.transport button[disabled]{opacity:.3;cursor:default}
+.transport .zeit{font:400 15px var(--mono);font-variant-numeric:tabular-nums}
+
+table{width:100%;border-collapse:collapse;margin-top:36px}
+th{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:0 12px 10px 0;border-bottom:1.5px solid var(--ink)}
+td{padding:12px 12px 12px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+td.nr{font:400 22px/1 var(--serif);width:56px}
+td.zeit,td.dauer{font:400 14px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.typ{width:40%}
+td.typ i{display:inline-block;width:10px;height:10px;margin-right:9px;vertical-align:-1px}
+td.akt{text-align:right;white-space:nowrap}
+td.akt button{border:1px solid var(--ink);padding:4px 10px;font-size:13px;margin-left:6px}
+tr.laeuft td{background:var(--hover)}
+.leer{padding:22px 0;color:var(--ink2)}
+
+.export{display:flex;flex-wrap:wrap;gap:10px;margin-top:36px;padding-top:20px;border-top:1.5px solid var(--ink)}
+.export button{border:1.5px solid var(--ink);padding:9px 16px;font-size:14px}
+.export button:hover,td.akt button:hover,.transport button:not([disabled]):hover{background:var(--ink);color:var(--paper)}
+
+@media (max-width:820px){
+  main{padding:24px 16px 60px}
+  header h1{font-size:32px}
+  .fakten{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .fakt:nth-child(4){padding-left:0;border-left:0}
+  .fakt{border-top:1px solid var(--rule)}
+  td.typ{width:auto}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="marke">Take-Marker</div>
+      <h1 id="titel">Auswertung</h1>
+    </div>
+    <button class="neu" id="neu" hidden>Anderen Ordner laden</button>
+  </header>
+
+  <section id="start">
+    <div id="drop">
+      <div>
+        <p>TM-Ordner von der Karte hierher ziehen</p>
+        <label>oder auswählen<input id="waehlen" type="file" webkitdirectory multiple></label>
+        <div id="wahl"></div>
+        <div id="fehler" role="alert"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ergebnis" hidden>
+    <dl class="fakten" id="fakten"></dl>
+    <div class="spur">
+      <div id="tip" hidden></div>
+      <canvas id="welle" aria-label="Tonspur mit Marken"></canvas>
+      <div class="achse" id="achse"></div>
+    </div>
+    <div class="transport">
+      <button id="stopp" disabled aria-label="Stopp"><svg width="12" height="12" viewBox="0 0 12 12"><rect width="12" height="12" fill="currentColor"/></svg></button>
+      <span class="zeit" id="pos">0:00:00.0</span>
+    </div>
+    <table>
+      <thead><tr><th>Nr</th><th>Zeit</th><th>Was</th><th>Dauer</th><th></th></tr></thead>
+      <tbody id="liste"></tbody>
+    </table>
+    <div class="export">
+      <button id="exWav">Ton als WAV</button>
+      <button id="exCsv">Marken als CSV</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const BUCKETS=4000;
+let A=null;          // geladene Aufnahme
+let ctx=null, quelle=null, spiel=null, raf=0;
+
+/* ---------- Zeit ---------- */
+function zeit(s,fein){
+  if(!isFinite(s))s=0;
+  const h=Math.floor(s/3600),m=Math.floor(s%3600/60),sek=s%60;
+  const ss=fein?sek.toFixed(1).padStart(4,'0'):String(Math.floor(sek)).padStart(2,'0');
+  return h+':'+String(m).padStart(2,'0')+':'+ss;
+}
+function dauer(s){return s<60?s.toFixed(1)+' s':zeit(s,true)}
+
+/* ---------- Dateien einsammeln ---------- */
+function eintraege(entry,pfad,out){
+  return new Promise(res=>{
+    if(entry.isFile){entry.file(f=>{out.push({pfad:pfad+entry.name,file:f});res()},()=>res());return}
+    if(!entry.isDirectory){res();return}
+    const r=entry.createReader(),alle=[];
+    const lies=()=>r.readEntries(async es=>{
+      if(!es.length){for(const e of alle)await eintraege(e,pfad+entry.name+'/',out);res();return}
+      alle.push(...es);lies();
+    },()=>res());
+    lies();
+  });
+}
+function gruppiere(liste){
+  const g={};
+  liste.forEach(({pfad,file})=>{
+    const name=pfad.split('/').pop(),ordner=pfad.slice(0,pfad.length-name.length).replace(/\/$/,'')||'Auswahl';
+    if(!/\.pcm$|^format\.txt$|^marks\.csv$|^stats\.csv$/i.test(name))return;
+    (g[ordner]=g[ordner]||{}).dateien=(g[ordner].dateien||[]);
+    g[ordner].dateien.push({name,file});
+  });
+  return Object.entries(g).filter(([,v])=>v.dateien.some(d=>/\.pcm$/i.test(d.name)))
+    .map(([ordner,v])=>({ordner,name:ordner.split('/').pop(),dateien:v.dateien}))
+    .sort((a,b)=>a.ordner.localeCompare(b.ordner));
+}
+function anbieten(gruppen){
+  $('fehler').textContent='';$('wahl').innerHTML='';
+  if(!gruppen.length){$('fehler').textContent='Kein Aufnahmeordner gefunden. Gesucht wird ein Ordner mit .pcm-Dateien, z.B. TM0001.';return}
+  if(gruppen.length===1){laden(gruppen[0]);return}
+  gruppen.forEach(g=>{
+    const b=document.createElement('button');b.textContent=g.name;b.onclick=()=>laden(g);$('wahl').appendChild(b);
+  });
+}
+
+/* ---------- Einlesen ---------- */
+const text=f=>f?f.text():Promise.resolve('');
+function csv(t){
+  const z=t.trim().split(/\r?\n/).filter(Boolean);if(z.length<2)return[];
+  const k=z[0].split(',');
+  return z.slice(1).map(l=>{const w=l.split(',');const o={};k.forEach((n,i)=>o[n.trim()]=(w[i]||'').trim());return o});
+}
+async function laden(g){
+  try{
+    $('fehler').textContent='';
+    const finde=n=>(g.dateien.find(d=>d.name.toLowerCase()===n)||{}).file;
+    const fmt={};(await text(finde('format.txt'))).split(/\s+/).forEach(z=>{const[k,v]=z.split('=');if(k&&v)fmt[k]=v});
+    const rate=+fmt.samplerate||16000;
+    const pcm=g.dateien.filter(d=>/\.pcm$/i.test(d.name)).sort((a,b)=>a.name.localeCompare(b.name));
+    const teile=[];let total=0;
+    pcm.forEach(d=>{const n=Math.floor(d.file.size/2);teile.push({file:d.file,start:total,n});total+=n});
+    // ein Durchgang: Gleichanteil, Spitzen, Übersicht
+    const bmin=new Float32Array(BUCKETS).fill(Infinity),bmax=new Float32Array(BUCKETS).fill(-Infinity);
+    let summe=0,lo=32767,hi=-32768;const proB=Math.max(1,total/BUCKETS);
+    for(const t of teile){
+      const v=new Int16Array(await t.file.slice(0,t.n*2).arrayBuffer());
+      for(let i=0;i<v.length;i++){
+        const x=v[i];summe+=x;if(x<lo)lo=x;if(x>hi)hi=x;
+        const b=Math.min(BUCKETS-1,Math.floor((t.start+i)/proB));
+        if(x<bmin[b])bmin[b]=x;if(x>bmax[b])bmax[b]=x;
+      }
+    }
+    const mittel=total?summe/total:0,spitze=Math.max(1,Math.abs(hi-mittel),Math.abs(lo-mittel));
+    // Ereignisse
+    const ereignisse=[];let offen=null;
+    csv(await text(finde('marks.csv'))).forEach(r=>{
+      const s=+r.sample,typ=r.typ;
+      if(typ==='M')ereignisse.push({art:'marke',s0:s,s1:s});
+      else if(typ==='N+')offen=s;
+      else if(typ==='N-'&&offen!==null){ereignisse.push({art:'notiz',s0:offen,s1:s});offen=null}
+    });
+    if(offen!==null)ereignisse.push({art:'notiz',s0:offen,s1:total,offenesEnde:true});
+    ereignisse.sort((a,b)=>a.s0-b.s0).forEach((e,i)=>e.nr=i+1);
+    const stats=csv(await text(finde('stats.csv')));
+    A={name:g.name,rate,teile,total,mittel,spitze,bmin,bmax,ereignisse,stats};
+    zeigen();
+  }catch(err){$('fehler').textContent='Konnte nicht gelesen werden: '+err.message}
+}
+
+/* ---------- Anzeige ---------- */
+function fakten(){
+  const s=A.stats,z=s[s.length-1],a=s[0];
+  const f=[['Dauer',zeit(A.total/A.rate),''],
+    ['Marken',A.ereignisse.filter(e=>e.art==='marke').length,''],
+    ['Notizen',A.ereignisse.filter(e=>e.art==='notiz').length,'']];
+  if(z&&a&&s.length>1){
+    const verl=+z.bytes_verloren||0,sek=(+z.micros-+a.micros)/1e6,rate=sek>0?(+z.samples-+a.samples)/sek:0;
+    f.push(['Lücken',verl?(verl/2/A.rate).toFixed(2):'keine',verl?'s':'',verl>0]);
+    f.push(['Samplerate',rate?rate.toFixed(1):'–','Hz',rate&&Math.abs(rate-A.rate)>A.rate*.001]);
+    f.push(['Schreiben max',z.schreiben_max_ms||'–','ms']);
+  }else{
+    f.push(['Lücken','–',''],['Samplerate','–',''],['Schreiben max','–','']);
+  }
+  const fehltAufKarte=z&&(+z.samples-A.total)>A.rate*2;
+  if(fehltAufKarte)f[0]=['Dauer',zeit(A.total/A.rate),'Zähler: '+zeit(+z.samples/A.rate),true];
+  $('fakten').innerHTML=f.map(([k,v,u,alarm])=>'<div class="fakt'+(alarm?' alarm':'')+'"><dt>'+k+'</dt><dd>'+v+(u?'<small>'+u+'</small>':'')+'</dd></div>').join('');
+}
+function liste(){
+  if(!A.ereignisse.length){$('liste').innerHTML='<tr><td colspan="5" class="leer">Keine Marken in marks.csv.</td></tr>';return}
+  $('liste').innerHTML=A.ereignisse.map(e=>{
+    const d=e.art==='notiz'?dauer((e.s1-e.s0)/A.rate):'';
+    const was=e.art==='marke'?'<i style="background:var(--mark)"></i>Marke':'<i style="background:var(--band);outline:1px solid var(--ink2)"></i>Notiz'+(e.offenesEnde?' ohne Ende':'');
+    const knoepfe='<button data-spiel="'+e.nr+'">Anhören</button>'+(e.art==='notiz'?'<button data-wav="'+e.nr+'">WAV</button>':'');
+    return '<tr data-nr="'+e.nr+'"><td class="nr">'+e.nr+'</td><td class="zeit">'+zeit(e.s0/A.rate,true)+'</td><td class="typ">'+was+'</td><td class="dauer">'+d+'</td><td class="akt">'+knoepfe+'</td></tr>';
+  }).join('');
+}
+function achse(){
+  const d=A.total/A.rate,schritte=[1,2,5,10,15,30,60,120,300,600,900,1800,3600];
+  const sch=schritte.find(x=>d/x<=8)||3600;let h='';
+  for(let t=0;t<=d+1e-6;t+=sch){const q=t/d,tr=q<.02?'translateX(0)':q>.98?'translateX(-100%)':'translateX(-50%)';h+='<span style="left:'+(q*100)+'%;transform:'+tr+'">'+zeit(t)+'</span>'}
+  $('achse').innerHTML=h;
+}
+function farbe(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function zeichne(){
+  if(!A)return;
+  const cv=$('welle'),dpr=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  cv.width=W*dpr;cv.height=H*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);c.clearRect(0,0,W,H);
+  const x=s=>s/A.total*W,mid=H/2,k=(H/2-6)/A.spitze;
+  c.fillStyle=farbe('--band');
+  A.ereignisse.filter(e=>e.art==='notiz').forEach(e=>c.fillRect(x(e.s0),0,Math.max(2,x(e.s1)-x(e.s0)),H));
+  c.strokeStyle=farbe('--wave');c.lineWidth=1;c.beginPath();
+  for(let px=0;px<W;px++){
+    const b0=Math.floor(px/W*BUCKETS),b1=Math.max(b0+1,Math.floor((px+1)/W*BUCKETS));
+    let lo=Infinity,hi=-Infinity;
+    for(let b=b0;b<b1;b++){if(A.bmin[b]<lo)lo=A.bmin[b];if(A.bmax[b]>hi)hi=A.bmax[b]}
+    if(!isFinite(lo))continue;
+    c.moveTo(px+.5,mid-(hi-A.mittel)*k);c.lineTo(px+.5,mid-(lo-A.mittel)*k+1);
+  }
+  c.stroke();
+  c.fillStyle=farbe('--mark');c.font='600 11px '+farbe('--sans');c.textAlign='center';
+  A.ereignisse.forEach(e=>{
+    const px=Math.round(x(e.s0));
+    if(e.art==='marke'){c.fillRect(px-1,12,2,H-12)}
+    c.fillText(e.nr,Math.min(W-6,Math.max(6,px)),10);
+  });
+  if(spiel){
+    const p=Math.round(x(spiel.aktuell));c.fillStyle=farbe('--ink');c.fillRect(p,0,1.5,H);
+  }
+}
+function zeigen(){
+  $('start').hidden=true;$('ergebnis').hidden=false;$('neu').hidden=false;
+  $('titel').textContent=A.name;document.title=A.name+' · Take-Marker';
+  fakten();liste();achse();zeichne();
+}
+
+/* ---------- Ton lesen ---------- */
+async function bereich(s0,s1){
+  s0=Math.max(0,Math.floor(s0));s1=Math.min(A.total,Math.ceil(s1));
+  const out=new Int16Array(Math.max(0,s1-s0));
+  for(const t of A.teile){
+    const a=Math.max(s0,t.start),b=Math.min(s1,t.start+t.n);if(a>=b)continue;
+    const v=new Int16Array(await t.file.slice((a-t.start)*2,(b-t.start)*2).arrayBuffer());
+    out.set(v,a-s0);
+  }
+  return out;
+}
+const normal=v=>Math.max(-1,Math.min(1,(v-A.mittel)/A.spitze*.95));
+
+/* ---------- Abspielen ---------- */
+function stopp(){
+  if(quelle){quelle.onended=null;try{quelle.stop()}catch(e){}quelle=null}
+  spiel=null;cancelAnimationFrame(raf);$('stopp').disabled=true;
+  document.querySelectorAll('tr.laeuft').forEach(r=>r.classList.remove('laeuft'));
+  zeichne();
+}
+async function spielen(s0,s1,nr){
+  stopp();
+  ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+  if(ctx.state==='suspended')await ctx.resume();
+  const roh=await bereich(s0,s1);if(!roh.length)return;
+  const buf=ctx.createBuffer(1,roh.length,A.rate),ch=buf.getChannelData(0);
+  for(let i=0;i<roh.length;i++)ch[i]=normal(roh[i]);
+  quelle=ctx.createBufferSource();quelle.buffer=buf;quelle.connect(ctx.destination);
+  const t0=ctx.currentTime;quelle.start();
+  spiel={s0:Math.max(0,s0),aktuell:s0,t0};
+  $('stopp').disabled=false;
+  if(nr){const r=document.querySelector('tr[data-nr="'+nr+'"]');if(r)r.classList.add('laeuft')}
+  quelle.onended=stopp;
+  const tick=()=>{if(!spiel)return;spiel.aktuell=spiel.s0+(ctx.currentTime-spiel.t0)*A.rate;$('pos').textContent=zeit(spiel.aktuell/A.rate,true);zeichne();raf=requestAnimationFrame(tick)};
+  tick();
+}
+
+/* ---------- Export ---------- */
+function wavKopf(n,rate){
+  const b=new ArrayBuffer(44),d=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>d.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');d.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);
+  d.setUint32(24,rate,true);d.setUint32(28,rate*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);w(36,'data');d.setUint32(40,n*2,true);
+  return b;
+}
+function wandle(v){const o=new Int16Array(v.length);for(let i=0;i<v.length;i++)o[i]=Math.round(normal(v[i])*32767);return o}
+function speichern(teile,name,typ){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(teile,{type:typ}));a.download=name;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+}
+async function exportWav(){
+  const teile=[wavKopf(A.total,A.rate)];
+  for(const t of A.teile)teile.push(wandle(new Int16Array(await t.file.slice(0,t.n*2).arrayBuffer())));
+  speichern(teile,A.name+'_ton.wav','audio/wav');
+}
+async function exportNotiz(e){
+  const v=await bereich(e.s0,e.s1);
+  speichern([wavKopf(v.length,A.rate),wandle(v)],A.name+'_notiz_'+String(e.nr).padStart(2,'0')+'.wav','audio/wav');
+}
+function exportCsv(){
+  const z=['nr,art,start_s,ende_s,dauer_s,zeit'];
+  A.ereignisse.forEach(e=>z.push([e.nr,e.art,(e.s0/A.rate).toFixed(3),(e.s1/A.rate).toFixed(3),((e.s1-e.s0)/A.rate).toFixed(3),zeit(e.s0/A.rate,true)].join(',')));
+  speichern([z.join('\n')+'\n'],A.name+'_marken.csv','text/csv');
+}
+
+/* ---------- Ereignisse ---------- */
+const drop=$('drop');
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('ueber')}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,()=>drop.classList.remove('ueber')));
+drop.addEventListener('drop',async e=>{
+  e.preventDefault();
+  const out=[],items=[...(e.dataTransfer.items||[])];
+  const entries=items.map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()).filter(Boolean);
+  if(entries.length){for(const en of entries)await eintraege(en,'',out)}
+  else [...e.dataTransfer.files].forEach(f=>out.push({pfad:f.name,file:f}));
+  anbieten(gruppiere(out));
+});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>e.preventDefault());
+$('waehlen').addEventListener('change',e=>{
+  anbieten(gruppiere([...e.target.files].map(f=>({pfad:f.webkitRelativePath||f.name,file:f}))));
+  e.target.value='';
+});
+$('neu').addEventListener('click',()=>{stopp();A=null;$('ergebnis').hidden=true;$('start').hidden=false;$('neu').hidden=true;$('titel').textContent='Auswertung';$('wahl').innerHTML='';document.title='Take-Marker Auswertung'});
+$('stopp').addEventListener('click',stopp);
+$('exWav').addEventListener('click',()=>A&&exportWav());
+$('exCsv').addEventListener('click',()=>A&&exportCsv());
+$('liste').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||!A)return;
+  const ev=A.ereignisse.find(x=>x.nr===+(b.dataset.spiel||b.dataset.wav));if(!ev)return;
+  if(b.dataset.wav){exportNotiz(ev);return}
+  if(ev.art==='marke')spielen(ev.s0-4*A.rate,ev.s0+2*A.rate,ev.nr);   // was kurz vor dem Druck passiert ist
+  else spielen(ev.s0,ev.s1,ev.nr);
+});
+const welle=$('welle'),tip=$('tip');
+welle.addEventListener('mousemove',e=>{
+  if(!A)return;const r=welle.getBoundingClientRect(),f=(e.clientX-r.left)/r.width;
+  tip.hidden=false;tip.style.left=(f*100)+'%';tip.textContent=zeit(f*A.total/A.rate,true);
+});
+welle.addEventListener('mouseleave',()=>{tip.hidden=true});
+welle.addEventListener('click',e=>{
+  if(!A)return;const r=welle.getBoundingClientRect(),s=(e.clientX-r.left)/r.width*A.total;
+  spielen(s,Math.min(A.total,s+30*A.rate));
+});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&spiel&&e.target===document.body){e.preventDefault();stopp()}});
+addEventListener('resize',zeichne);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',zeichne);
+
+/* ---------- Testdaten: auswertung.html#beispiel ---------- */
+if(location.hash==='#beispiel'){
+  const rate=16000,sek=180,n=rate*sek,v=new Int16Array(n);
+  let seed=1;const zufall=()=>{seed=(seed*16807)%2147483647;return seed/2147483647-.5};
+  for(let i=0;i<n;i++){
+    const t=i/rate;let x=300+zufall()*120;
+    if((t>12&&t<38)||(t>70&&t<92)||(t>140&&t<165))x+=Math.sin(t*2*Math.PI*180)*2500*(1+Math.sin(t*3));
+    if((t>55&&t<61)||(t>118&&t<126))x+=Math.sin(t*2*Math.PI*220)*6000*Math.abs(Math.sin(t*9));
+    v[i]=Math.max(-32768,Math.min(32767,Math.round(x)));
+  }
+  const halb=n/2*2,f=(name,teile)=>({name,file:new File(teile,name)});
+  const stats=['micros,samples,bytes_verloren,ring_max,schreiben_max_ms'];
+  for(let s=10;s<=sek;s+=10)stats.push([s*1e6,s*rate,0,65536,48+s%30].join(','));
+  anbieten([{ordner:'TM0001',name:'TM0001',dateien:[
+    f('format.txt',['samplerate=16000\nbits=16\nkanaele=1\nformat=s16le\n']),
+    f('000.pcm',[v.buffer.slice(0,halb)]),f('001.pcm',[v.buffer.slice(halb)]),
+    f('marks.csv',['sample,typ\n'+[[40*rate,'M'],[55*rate,'N+'],[61*rate,'N-'],[95*rate,'M'],[118*rate,'N+'],[126*rate,'N-'],[167*rate,'M']].map(r=>r.join(',')).join('\n')+'\n']),
+    f('stats.csv',[stats.join('\n')+'\n'])]}]);
+}
+})();
+</script>
+
+<a href="../" class="tm-back" style="position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:9999;
+font:600 12px/1 'B612','Avenir Next',system-ui,sans-serif;letter-spacing:.02em;text-decoration:none;color:#EDF2E7;background:#13302A;
+padding:8px 11px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.25)">← Take-Marker</a>
+</body>
+</html>

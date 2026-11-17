@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Take-Marker Testsuite</title>
+<style>
+:root{
+  --paper:#F5F3EE; --ink:#151515; --ink2:#55524C; --rule:#D8D3C8; --band:#E8DFCB;
+  --mark:#C2321F; --ok:#1F6B4A; --hover:#ECE7DC;
+  --serif:"Iowan Old Style","Charter","Georgia",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#121211; --ink:#ECE9E2; --ink2:#A39F96; --rule:#33312D; --band:#3A3326;
+  --mark:#F0654F; --ok:#5BC08F; --hover:#1E1D1B;
+}}
+:root[data-theme="dark"]{
+  --paper:#121211; --ink:#ECE9E2; --ink2:#A39F96; --rule:#33312D; --band:#3A3326;
+  --mark:#F0654F; --ok:#5BC08F; --hover:#1E1D1B;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+main{max-width:1120px;margin:0 auto;padding:40px 32px 80px}
+button{font:inherit;color:inherit;background:none;border:1.5px solid var(--ink);padding:8px 16px;cursor:pointer}
+button:hover:not([disabled]){background:var(--ink);color:var(--paper)}
+button[disabled]{opacity:.35;cursor:default}
+button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1.5px solid var(--ink);padding-bottom:14px}
+header .marke{font:600 13px/1 var(--sans);letter-spacing:.02em}
+header h1{font:400 44px/1 var(--serif);margin:0;letter-spacing:-.01em}
+.verb{display:flex;align-items:center;gap:12px}
+#zustand{font:400 13px var(--mono);color:var(--ink2)}
+#zustand.an{color:var(--ok)}
+
+#ohne{margin-top:48px;border:1.5px dashed var(--rule);min-height:44vh;display:grid;place-items:center;text-align:center;padding:32px}
+#ohne p{font:400 30px/1.25 var(--serif);margin:0 0 18px}
+#ohne .klein{font:400 14px var(--sans);color:var(--mark);margin-top:14px}
+
+.fakten{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-bottom:1px solid var(--rule)}
+.fakt{padding:18px 16px 18px 0;min-width:0}
+.fakt+.fakt{padding-left:16px;border-left:1px solid var(--rule)}
+.fakt dt{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.fakt dd{margin:10px 0 0;font:400 24px/1.1 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fakt.gut dd{color:var(--ok)}
+.fakt.schlecht dd{color:var(--mark)}
+.fakt.an{background:var(--band)}
+
+section.block{margin-top:40px}
+h2{font:400 26px/1 var(--serif);margin:0 0 14px;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h2 span{font:400 14px var(--mono);color:var(--ink2)}
+canvas{display:block;width:100%}
+#welle{height:140px;border-bottom:1px solid var(--ink)}
+#spektrum{height:110px;margin-top:10px}
+.pegel{display:flex;align-items:center;gap:14px;margin-top:12px}
+.pegel .balken{flex:1;height:10px;background:var(--hover);position:relative;overflow:hidden}
+.pegel .balken i{position:absolute;inset:0 auto 0 0;background:var(--ink);width:0}
+.pegel .balken b{position:absolute;top:0;bottom:0;width:2px;background:var(--mark);left:0}
+.pegel span{font:400 14px var(--mono);width:84px;text-align:right}
+
+.zwei{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.knoepfe{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.knopf{border:1.5px solid var(--ink);padding:22px 18px;transition:background .06s}
+.knopf.an{background:var(--ink);color:var(--paper)}
+.knopf .n{font:400 40px/1 var(--serif)}
+.knopf .t{margin-top:8px;font-size:14px}
+.knopf .z{margin-top:4px;font:400 12px var(--mono);opacity:.75}
+.reihe{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex}
+.seg button+button{border-left:0}
+#sdErgebnis,#spitzeWert{font:400 15px var(--mono)}
+#spitzeWert{font:400 40px/1 var(--serif);margin:6px 0 10px}
+
+table{width:100%;border-collapse:collapse;margin-top:16px}
+th{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:0 12px 10px 0;border-bottom:1.5px solid var(--ink)}
+td{padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+td.nr{font:400 22px/1 var(--serif);width:56px}
+td.m{font:400 14px var(--mono);white-space:nowrap}
+td audio{height:32px;width:100%;max-width:340px}
+td a{color:var(--ink)}
+#rec.an{background:var(--mark);border-color:var(--mark);color:#fff}
+
+details{margin-top:40px;border-top:1.5px solid var(--ink);padding-top:12px}
+summary{cursor:pointer;font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+#log{font:400 12px/1.5 var(--mono);white-space:pre-wrap;max-height:220px;overflow:auto;margin:10px 0 0;color:var(--ink2)}
+
+@media (max-width:860px){
+  main{padding:24px 16px 60px}
+  header{flex-wrap:wrap}
+  header h1{font-size:32px}
+  .fakten{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .fakt:nth-child(4){padding-left:0;border-left:0}
+  .fakt{border-top:1px solid var(--rule)}
+  .zwei{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="marke">Take-Marker</div>
+      <h1>Testsuite</h1>
+    </div>
+    <div class="verb">
+      <span id="zustand">nicht verbunden</span>
+      <button id="verbinden">Verbinden</button>
+    </div>
+  </header>
+
+  <section id="ohne">
+    <div>
+      <p>Board per USB anschliessen, dann verbinden</p>
+      <button id="verbinden2">Verbinden</button>
+      <div class="klein" id="keinSerial" hidden>Dieser Browser kann nicht auf USB zugreifen. Die Seite in Chrome öffnen.</div>
+    </div>
+  </section>
+
+  <section id="live" hidden>
+    <dl class="fakten">
+      <div class="fakt" id="fBoard"><dt>Board</dt><dd>–</dd></div>
+      <div class="fakt" id="fSd"><dt>SD-Karte</dt><dd>–</dd></div>
+      <div class="fakt" id="fMic"><dt>Mikrofon</dt><dd>–</dd></div>
+      <div class="fakt" id="fK1"><dt>Knopf 1</dt><dd>los</dd></div>
+      <div class="fakt" id="fK2"><dt>Knopf 2</dt><dd>los</dd></div>
+      <div class="fakt" id="fP"><dt>Prüfspitze</dt><dd>–</dd></div>
+    </dl>
+
+    <section class="block">
+      <h2>Mikrofon <span id="micRoh"></span></h2>
+      <canvas id="welle"></canvas>
+      <canvas id="spektrum"></canvas>
+      <div class="pegel"><div class="balken"><i id="pegelI"></i><b id="pegelB"></b></div><span id="pegelDb">– dB</span></div>
+    </section>
+
+    <section class="block zwei">
+      <div>
+        <h2>Knöpfe</h2>
+        <div class="knoepfe">
+          <div class="knopf" id="k1"><div class="n">1</div><div class="t">Marke</div><div class="z" id="k1z">0 mal</div></div>
+          <div class="knopf" id="k2"><div class="n">2</div><div class="t">Notiz, halten nimmt auf</div><div class="z" id="k2z">0 mal</div></div>
+        </div>
+      </div>
+      <div>
+        <h2>LED</h2>
+        <div class="seg" role="group" aria-label="LED">
+          <button data-led="0">Aus</button><button data-led="1">An</button><button data-led="2">Automatisch</button>
+        </div>
+        <h2 style="margin-top:32px">SD-Karte</h2>
+        <div class="reihe"><button id="sdPruefen">Prüfen</button><span id="sdErgebnis">–</span></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Aufnahmen <span id="recZeit"></span></h2>
+      <div class="reihe"><button id="rec">Aufnehmen</button></div>
+      <table id="recTab" hidden><thead><tr><th>Nr</th><th>Länge</th><th>Quelle</th><th>Anhören</th><th></th></tr></thead><tbody id="recListe"></tbody></table>
+    </section>
+
+    <section class="block">
+      <h2>Prüfspitze D2</h2>
+      <div id="spitzeWert">–</div>
+      <div>10-kΩ-Widerstand ins Loch unter dem freien Pin D2 (untere XIAO-Reihe, 3. Pin von der USB-Seite), Kabel ans andere Widerstandsbein, Kabelende in das Loch, das ihr prüfen wollt. Nie ohne Widerstand.</div>
+    </section>
+
+    <details><summary>Protokoll</summary><div id="log"></div></details>
+  </section>
+</main>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const RATE=16000, FENSTER=RATE*3;
+const ring=new Float32Array(FENSTER); let rpos=0, dc=0, dcInit=false;
+let port=null, schreiber=null, lesenAktiv=false;
+let rec=null; const aufnahmen=[];
+const zaehler={1:0,2:0};
+let spitzenPegel=0,spitzenZeit=0, letzteAudio=0;
+
+/* ---------- Anzeige ---------- */
+function fakt(id,wert,klasse){const f=$(id);f.querySelector('dd').textContent=wert;f.className='fakt'+(klasse?' '+klasse:'')}
+function log(z){const l=$('log');l.textContent=(z+'\n'+l.textContent).slice(0,6000)}
+function verbunden(an){
+  $('zustand').textContent=an?'verbunden':'nicht verbunden';$('zustand').className=an?'an':'';
+  $('verbinden').textContent=an?'Trennen':'Verbinden';
+  $('ohne').hidden=an;$('live').hidden=!an;
+  if(an)requestAnimationFrame(zeichne);
+}
+
+/* ---------- Zeilen vom Board ---------- */
+function b64(s){const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Int16Array(u.buffer,0,u.length>>1)}
+function zeile(z){
+  if(z.startsWith('A:')){ton(b64(z.slice(2)));return}
+  log(z);
+  const t=z.split(':');
+  switch(t[0]){
+    case 'INFO':{
+      const o={};z.slice(5).split(';').forEach(p=>{const[k,v]=p.split('=');o[k]=v});
+      fakt('fBoard',o.psram_kb?'PSRAM '+Math.round(o.psram_kb/1024)+' MB':'da',o.psram_kb>0?'gut':'schlecht');
+      if(o.mikrofon!=='gestartet')fakt('fMic','startet nicht','schlecht');
+      break}
+    case 'SD':
+      if(t[1]==='OK'){fakt('fSd',t[3]+' MB','gut');$('sdErgebnis').textContent='Karte '+t[3]+' MB, schreiben '+t[4]+', lesen '+t[5]}
+      else{fakt('fSd','keine Antwort','schlecht');$('sdErgebnis').textContent=t.slice(2).join(':')}
+      break;
+    case 'K':{
+      const n=+t[1],an=t[2]==='1';
+      $('k'+n).classList.toggle('an',an);fakt('fK'+n,an?'gedrückt':'los',an?'an':'');
+      if(an){zaehler[n]++;$('k'+n+'z').textContent=zaehler[n]+' mal'}
+      if(n===2){if(an&&!rec)starteRec('Knopf 2');if(!an&&rec&&rec.quelle==='Knopf 2')stoppeRec()}
+      break}
+    case 'M':{
+      const lo=+t[1],hi=+t[2],n=+t[3];
+      $('micRoh').textContent='Rohwerte '+lo+' bis '+hi+', '+n+' pro s';
+      if(n<RATE*.9)fakt('fMic','kein Takt','schlecht');
+      else if(hi===lo)fakt('fMic','nur '+(hi===0?'Nullen':hi),'schlecht');
+      else fakt('fMic','Signal','gut');
+      break}
+    case 'P':
+      fakt('fP',t[1],t[1]==='offen'?'':'gut');$('spitzeWert').textContent=t[1];break;
+    case 'L':
+      document.querySelectorAll('[data-led]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.led===t[1])));break;
+  }
+}
+function ton(v){
+  letzteAudio=performance.now();
+  let s=0;for(let i=0;i<v.length;i++)s+=v[i];
+  const m=s/v.length;if(!dcInit){dc=m;dcInit=true}else dc+=(m-dc)*.02;
+  let q=0;
+  for(let i=0;i<v.length;i++){const x=(v[i]-dc)/32768;ring[rpos]=x;rpos=(rpos+1)%FENSTER;q+=x*x}
+  const db=v.length?10*Math.log10(q/v.length+1e-12):-120;
+  const jetzt=performance.now();
+  if(db>spitzenPegel||jetzt-spitzenZeit>1500){spitzenPegel=db;spitzenZeit=jetzt}
+  $('pegelDb').textContent=(db<-99?'–':db.toFixed(0))+' dB';
+  const w=x=>Math.max(0,Math.min(100,(x+80)/80*100));
+  $('pegelI').style.width=w(db)+'%';$('pegelB').style.left=w(spitzenPegel)+'%';
+  if(rec){rec.teile.push(v.slice());rec.n+=v.length;$('recZeit').textContent=(rec.n/RATE).toFixed(1)+' s'}
+}
+
+/* ---------- Zeichnen ---------- */
+function farbe(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function leinwand(cv){const d=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(cv.width!==W*d||cv.height!==H*d){cv.width=W*d;cv.height=H*d}const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,W,H);return[c,W,H]}
+function fft(re,im){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]]}}
+  for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a);
+    for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<len/2;k++){const ur=re[i+k],ui=im[i+k],vr=re[i+k+len/2]*cr-im[i+k+len/2]*ci,vi=re[i+k+len/2]*ci+im[i+k+len/2]*cr;
+      re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}
+}
+function zeichne(){
+  if($('live').hidden)return;
+  const ink=farbe('--ink'),ink2=farbe('--ink2'),rule=farbe('--rule');
+  let [c,W,H]=leinwand($('welle'));
+  const mid=H/2,proPx=FENSTER/W;
+  c.strokeStyle=rule;c.beginPath();c.moveTo(0,mid);c.lineTo(W,mid);c.stroke();
+  let sp=0;for(let i=0;i<FENSTER;i++){const x=Math.abs(ring[i]);if(x>sp)sp=x}
+  const g=.95/Math.max(sp,.02);
+  c.strokeStyle=ink;c.beginPath();
+  for(let px=0;px<W;px++){
+    let lo=1,hi=-1;const a=Math.floor(px*proPx),b=Math.floor((px+1)*proPx);
+    for(let i=a;i<b;i++){const x=ring[(rpos+i)%FENSTER];if(x<lo)lo=x;if(x>hi)hi=x}
+    c.moveTo(px+.5,mid-hi*g*mid);c.lineTo(px+.5,mid-lo*g*mid+1);
+  }
+  c.stroke();
+  c.fillStyle=ink2;c.font='11px '+farbe('--mono');c.fillText('3 s',4,12);
+  [c,W,H]=leinwand($('spektrum'));
+  const N=1024,re=new Float32Array(N),im=new Float32Array(N);
+  for(let i=0;i<N;i++){re[i]=ring[(rpos-N+i+FENSTER)%FENSTER]*(.5-.5*Math.cos(2*Math.PI*i/(N-1)))}
+  fft(re,im);
+  const baender=72,f0=60,f1=RATE/2,bw=W/baender;
+  c.fillStyle=ink;
+  for(let b=0;b<baender;b++){
+    const fa=f0*Math.pow(f1/f0,b/baender),fb=f0*Math.pow(f1/f0,(b+1)/baender);
+    const ia=Math.max(1,Math.floor(fa/RATE*N)),ib=Math.max(ia+1,Math.floor(fb/RATE*N));
+    let m=0;for(let i=ia;i<ib&&i<N/2;i++)m=Math.max(m,Math.hypot(re[i],im[i]));
+    const db=20*Math.log10(m/N*4+1e-9),h=Math.max(1,(db+90)/90*H);
+    c.fillRect(b*bw+1,H-h,bw-2,h);
+  }
+  c.fillStyle=ink2;[100,1000,4000].forEach(f=>{const x=Math.log(f/f0)/Math.log(f1/f0)*W;c.fillText(f>=1000?f/1000+' kHz':f+' Hz',x+3,12)});
+  if(performance.now()-letzteAudio>1500){c.fillStyle=farbe('--mark');c.fillText('kein Ton vom Board',W-130,H-6)}
+  requestAnimationFrame(zeichne);
+}
+
+/* ---------- Aufnahme ---------- */
+function starteRec(quelle){rec={quelle,teile:[],n:0};$('rec').classList.add('an');$('rec').textContent='Stopp'}
+function stoppeRec(){
+  if(!rec)return;const r=rec;rec=null;$('rec').classList.remove('an');$('rec').textContent='Aufnehmen';$('recZeit').textContent='';
+  if(r.n<RATE*.2)return;
+  const v=new Int16Array(r.n);let o=0;r.teile.forEach(t=>{v.set(t,o);o+=t.length});
+  let s=0;for(const x of v)s+=x;const m=s/v.length;let sp=1;for(const x of v)sp=Math.max(sp,Math.abs(x-m));
+  const out=new Int16Array(v.length);for(let i=0;i<v.length;i++)out[i]=Math.round((v[i]-m)/sp*30000);
+  const kopf=new ArrayBuffer(44),d=new DataView(kopf),w=(p,t)=>[...t].forEach((ch,i)=>d.setUint8(p+i,ch.charCodeAt(0)));
+  w(0,'RIFF');d.setUint32(4,36+out.length*2,true);w(8,'WAVE');w(12,'fmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);
+  d.setUint32(24,RATE,true);d.setUint32(28,RATE*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);w(36,'data');d.setUint32(40,out.length*2,true);
+  const url=URL.createObjectURL(new Blob([kopf,out],{type:'audio/wav'}));
+  aufnahmen.push({nr:aufnahmen.length+1,s:v.length/RATE,quelle:r.quelle,url,leer:sp<=1});
+  $('recTab').hidden=false;
+  $('recListe').innerHTML=aufnahmen.slice().reverse().map(a=>'<tr><td class="nr">'+a.nr+'</td><td class="m">'+a.s.toFixed(1)+' s'+(a.leer?' (still)':'')+'</td><td>'+a.quelle+'</td><td><audio controls src="'+a.url+'"></audio></td><td class="m"><a download="test_'+String(a.nr).padStart(2,'0')+'.wav" href="'+a.url+'">WAV</a></td></tr>').join('');
+}
+
+/* ---------- Verbindung ---------- */
+async function senden(t){if(schreiber){try{await schreiber.write(new TextEncoder().encode(t+'\n'))}catch(e){log('Senden: '+e.message)}}}
+async function verbinden(){
+  if(port){trennen();return}
+  try{port=await navigator.serial.requestPort({filters:[{usbVendorId:0x303a}]})}catch(e){return}
+  try{await port.open({baudRate:115200,bufferSize:65536})}catch(e){log('Öffnen: '+e.message);port=null;return}
+  schreiber=port.writable.getWriter();verbunden(true);
+  lesen();await senden('INFO');await senden('AUDIO 1');await senden('SD');
+}
+async function lesen(){
+  lesenAktiv=true;let rest='';
+  while(port&&port.readable&&lesenAktiv){
+    const r=port.readable.getReader();
+    try{
+      for(;;){const{value,done}=await r.read();if(done)break;
+        rest+=new TextDecoder().decode(value);let i;
+        while((i=rest.indexOf('\n'))>=0){const z=rest.slice(0,i).replace(/\r$/,'');rest=rest.slice(i+1);if(z)zeile(z)}
+        if(rest.length>20000)rest='';
+      }
+    }catch(e){log('Verbindung: '+e.message);break}
+    finally{r.releaseLock()}
+  }
+  trennen();
+}
+async function trennen(){
+  lesenAktiv=false;stoppeRec();
+  const p=port;port=null;
+  try{if(schreiber){await schreiber.write(new TextEncoder().encode('AUDIO 0\n'));schreiber.releaseLock()}}catch(e){}
+  schreiber=null;
+  try{if(p)await p.close()}catch(e){}
+  verbunden(false);
+}
+
+/* ---------- Bedienung ---------- */
+if(!('serial' in navigator)){$('keinSerial').hidden=false;$('verbinden').disabled=$('verbinden2').disabled=true}
+$('verbinden').onclick=verbinden;$('verbinden2').onclick=verbinden;
+document.querySelectorAll('[data-led]').forEach(b=>b.onclick=()=>senden('LED '+b.dataset.led));
+$('sdPruefen').onclick=()=>{$('sdErgebnis').textContent='prüft …';senden('SD')};
+$('rec').onclick=()=>rec?stoppeRec():starteRec('Seite');
+if(navigator.serial)navigator.serial.addEventListener('disconnect',()=>{if(port)trennen()});
+
+/* ---------- Testdaten: testsuite.html#beispiel ---------- */
+if(location.hash==='#beispiel'){
+  verbunden(true);
+  ['INFO:board=XIAO ESP32-S3;psram_kb=8192;mikrofon=gestartet;firmware=testmodus 1','L:2','SD:OK:3:1886:ja:ja','P:GND'].forEach(zeile);
+  let t=0,seed=7;const z=()=>{seed=(seed*16807)%2147483647;return seed/2147483647-.5};
+  setInterval(()=>{const v=new Int16Array(320);for(let i=0;i<320;i++){const s=(t+i)/RATE;v[i]=-1200+z()*300+(Math.sin(s*1.3)>.3?Math.sin(s*2*Math.PI*240)*5000*Math.abs(Math.sin(s*7)):0)}t+=320;
+    const b=new Uint8Array(v.buffer);let s='';for(const x of b)s+=String.fromCharCode(x);zeile('A:'+btoa(s))},20);
+  setInterval(()=>zeile('M:-6200:4100:16000'),1000);
+  setTimeout(()=>zeile('K:1:1'),600);
+}
+})();
+</script>
+
+<a href="../" class="tm-back" style="position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:9999;
+font:600 12px/1 'B612','Avenir Next',system-ui,sans-serif;letter-spacing:.02em;text-decoration:none;color:#EDF2E7;background:#13302A;
+padding:8px 11px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.25)">← Take-Marker</a>
+</body>
+</html>
